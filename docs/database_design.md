@@ -39,7 +39,7 @@ The database design follows a modular structure to maintain data integrity, supp
 Example:
 
 ```env
-MONGODB_URI=mongodb://127.0.0.1:27017/smart_hospital
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/smart_hospital
 ```
 
 The application will use Mongoose to define schemas, references, validation rules and indexes.
