@@ -19,7 +19,12 @@ const env = {
   JWT_SECRET: JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
   HOSPITAL_TIMEZONE: process.env.HOSPITAL_TIMEZONE || 'Asia/Kolkata',
-  VAULT_STORAGE_PATH: process.env.VAULT_STORAGE_PATH || 'uploads/vault'
+  VAULT_STORAGE_PATH: process.env.VAULT_STORAGE_PATH || 'uploads/vault',
+
+  // Bootstrap config — optional, only used by src/scripts/bootstrap.js (not the HTTP server)
+  BOOTSTRAP_CMO_EMAIL: process.env.BOOTSTRAP_CMO_EMAIL || null,
+  BOOTSTRAP_CMO_NAME: process.env.BOOTSTRAP_CMO_NAME || null,
+  BOOTSTRAP_CMO_PASSWORD: process.env.BOOTSTRAP_CMO_PASSWORD || null
 };
 
 module.exports = env;

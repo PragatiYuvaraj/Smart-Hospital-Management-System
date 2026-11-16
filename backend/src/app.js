@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const env = require('./config/env');
 const healthRoutes = require('./routes/health.routes');
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 
@@ -27,6 +28,9 @@ app.use('/api/health', healthRoutes);
 
 // Authentication endpoints
 app.use('/api/auth', authRoutes);
+
+// User management endpoints (Milestone 3)
+app.use('/api/users', userRoutes);
 
 // Root landing endpoint
 app.get('/', (req, res) => {
