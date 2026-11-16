@@ -41,6 +41,16 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Angular build and cache
+.angular/
+dist/
+
+# Uploads and private storage
+backend/uploads/*
+!backend/uploads/vault/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

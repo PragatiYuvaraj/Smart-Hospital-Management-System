@@ -1,0 +1,76 @@
+<div class="dashboard-container">
+  <div class="card">
+    <div class="dashboard-header">
+      <div>
+        <h2>Welcome, {{ user?.name || 'User' }}</h2>
+        <p class="subtitle">Protected Dashboard Placeholder (Milestone 2)</p>
+      </div>
+      <button class="btn btn-secondary" (click)="onLogout()">Log Out</button>
+    </div>
+
+    <!-- Verification Banner -->
+    <div *ngIf="verifyMessage" class="success-banner">
+      ✓ {{ verifyMessage }}
+    </div>
+
+    <!-- Profile Overview Table -->
+    <div *ngIf="user" class="profile-details">
+      <h3 class="section-title">Authenticated Session Details</h3>
+      <table class="details-table">
+        <tbody>
+          <tr>
+            <td class="key">User ID:</td>
+            <td class="value"><code>{{ user._id }}</code></td>
+          </tr>
+          <tr>
+            <td class="key">Full Name:</td>
+            <td class="value">{{ user.name }}</td>
+          </tr>
+          <tr>
+            <td class="key">Email:</td>
+            <td class="value">{{ user.email }}</td>
+          </tr>
+          <tr>
+            <td class="key">Role:</td>
+            <td class="value">
+              <span class="status-badge" [ngClass]="user.role.toLowerCase()">
+                {{ user.role }}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="key">Permissions:</td>
+            <td class="value">
+              <span *ngIf="user.permissions && user.permissions.length > 0; else noPerms">
+                <span *ngFor="let p of user.permissions" class="permission-tag">{{ p }}</span>
+              </span>
+              <ng-template #noPerms>
+                <em style="color: #9ca3af;">Standard Role Permissions</em>
+              </ng-template>
+            </td>
+          </tr>
+          <tr>
+            <td class="key">Account Status:</td>
+            <td class="value">
+              <span class="status-badge up">{{ user.status }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="key">Token Storage:</td>
+            <td class="value">
+              <small style="color: #6b7280;">Stored in <code>localStorage</code> (Educational prototype baseline with centralized service management)</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+      <button class="btn btn-primary" (click)="verifyTokenWithBackend()" [disabled]="isLoading">
+        <span *ngIf="isLoading">Verifying...</span>
+        <span *ngIf="!isLoading">Re-verify Token with GET /api/auth/me</span>
+      </button>
+      <small style="color: #9ca3af;">Role-specific dashboards will be implemented in subsequent milestones.</small>
+    </div>
+  </div>
+</div>

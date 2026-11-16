@@ -1,0 +1,33 @@
+<header class="navbar">
+  <div class="navbar-brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+    <a routerLink="/" style="color: #ffffff; text-decoration: none; font-weight: 700;">{{ title }}</a>
+    <span class="badge-tag">MEAN Stack</span>
+  </div>
+
+  <nav class="nav-links">
+    <!-- Unauthenticated Nav -->
+    <ng-container *ngIf="!(currentUser$ | async); else userNav">
+      <a routerLink="/login" class="nav-link" routerLinkActive="active">Sign In</a>
+      <a routerLink="/register" class="nav-link" routerLinkActive="active">Register (Patient)</a>
+    </ng-container>
+
+    <!-- Authenticated Nav -->
+    <ng-template #userNav>
+      <ng-container *ngIf="currentUser$ | async as user">
+        <span class="user-greeting">
+          Signed in as <strong>{{ user.name }}</strong>
+          <span class="role-pill">{{ user.role }}</span>
+        </span>
+        <a routerLink="/dashboard" class="nav-link" routerLinkActive="active">Dashboard</a>
+        <button class="btn-nav-logout" (click)="onLogout()">Sign Out</button>
+      </ng-container>
+    </ng-template>
+  </nav>
+</header>
+
+<main>
+  <router-outlet></router-outlet>
+</main>

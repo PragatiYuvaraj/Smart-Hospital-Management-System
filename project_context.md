@@ -7,8 +7,6 @@
 
 **Project Type:** Internship Major Project
 
-**Project Duration:** 15 Working Days
-
 **Project Version:** 1.0
 
 **Project Architecture:** Full-Stack Web Application
