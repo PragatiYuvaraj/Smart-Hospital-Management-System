@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Patient = require('../models/Patient');
 const generateToken = require('../utils/generateToken');
+const { recordAudit } = require('./audit.service');
 
 const createError = (statusCode, message) => {
   const error = new Error(message);
@@ -38,14 +39,25 @@ const supportsTransactions = () => {
 };
 
 const createWithTransaction = async (user, patientData) => {
+  let patient;
   await mongoose.connection.transaction(async (session) => {
     await user.save({ session });
 
-    const patient = new Patient({
+    patient = new Patient({
       ...patientData,
       userId: user._id
     });
     await patient.save({ session });
+    await recordAudit(
+      {
+        actorId: user._id,
+        action: 'PATIENT_REGISTERED',
+        resourceType: 'Patient',
+        resourceId: patient._id,
+        accessType: 'SELF_REGISTRATION'
+      },
+      session
+    );
   });
 
   return user;
@@ -184,6 +196,13 @@ const registerPatient = async (payload = {}) => {
         await patient.save();
         user.status = 'ACTIVE';
         await user.save();
+        await recordAudit({
+          actorId: user._id,
+          action: 'PATIENT_REGISTERED',
+          resourceType: 'Patient',
+          resourceId: patient._id,
+          accessType: 'SELF_REGISTRATION'
+        });
       } catch (error) {
         await rollbackNonTransactionalRegistration(user, error);
         throw error;

@@ -1,6 +1,7 @@
 'use strict';
 
 const Patient = require('../models/Patient');
+const { recordAudit } = require('./audit.service');
 
 const ALLOWED_FIELDS = ['contactNumber', 'address'];
 const RESTRICTED_FIELDS = [
@@ -87,6 +88,14 @@ const updateOwnProfile = async (userId, payload = {}) => {
   if (!patient) {
     throw createError(404, 'Patient profile not found.');
   }
+
+  await recordAudit({
+    actorId: userId,
+    action: 'PATIENT_PROFILE_UPDATED',
+    resourceType: 'Patient',
+    resourceId: patient._id,
+    accessType: 'SELF_SERVICE'
+  });
 
   return patient.toJSON();
 };

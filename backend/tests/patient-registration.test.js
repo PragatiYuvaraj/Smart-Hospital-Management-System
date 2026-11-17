@@ -4,6 +4,7 @@ const assert = require('assert');
 const mongoose = require('mongoose');
 const User = require('../src/models/User');
 const Patient = require('../src/models/Patient');
+const AuditLog = require('../src/models/AuditLog');
 const { registerPatient } = require('../src/services/auth.service');
 
 const originalMethods = {
@@ -13,13 +14,17 @@ const originalMethods = {
   userDeleteOne: User.deleteOne,
   patientSave: Patient.prototype.save,
   patientDeleteOne: Patient.deleteOne,
+  auditSave: AuditLog.prototype.save,
   connectionTransaction: Object.getOwnPropertyDescriptor(mongoose.connection, 'transaction')
 };
 
 const users = new Map();
 const patients = new Map();
+const auditLogs = [];
 let patientSaveError = null;
+let failAuditSave = false;
 const saveSessions = [];
+const auditSaveSessions = [];
 let passed = 0;
 let failed = 0;
 
@@ -36,8 +41,11 @@ const assertTest = (condition, description) => {
 const resetData = () => {
   users.clear();
   patients.clear();
+  auditLogs.length = 0;
   patientSaveError = null;
+  failAuditSave = false;
   saveSessions.length = 0;
+  auditSaveSessions.length = 0;
 };
 
 User.findOne = async ({ email }) =>
@@ -76,6 +84,15 @@ const deletePatientProfile = async ({ userId }) => ({
   deletedCount: patients.delete(String(userId)) ? 1 : 0
 });
 Patient.deleteOne = deletePatientProfile;
+
+AuditLog.prototype.save = async function (options = {}) {
+  if (failAuditSave) {
+    throw new Error('Simulated audit persistence failure');
+  }
+  auditLogs.push(this);
+  auditSaveSessions.push(options.session || null);
+  return this;
+};
 
 const register = (overrides = {}) =>
   registerPatient({
@@ -116,6 +133,21 @@ const runTests = async () => {
       'Password hash is absent from the registration response'
     );
     assertTest(Boolean(result.token), 'Registration returns the existing JWT response data');
+    assertTest(
+      auditLogs.length === 1 &&
+        auditLogs[0].action === 'PATIENT_REGISTERED' &&
+        String(auditLogs[0].actorId) === String(createdUser._id) &&
+        String(auditLogs[0].resourceId) === String(createdPatient._id) &&
+        auditLogs[0].outcome === 'SUCCESS',
+      'Registration logs the authenticated patient and new profile'
+    );
+    const auditFields = auditLogs[0].toObject();
+    assertTest(
+      !['password', 'passwordHash', 'token', 'name', 'email', 'dateOfBirth'].some(
+        (field) => Object.prototype.hasOwnProperty.call(auditFields, field)
+      ),
+      'Registration audit entry excludes credentials and personal details'
+    );
 
     resetData();
     const doctorAttempt = await register({
@@ -158,6 +190,26 @@ const runTests = async () => {
     assertTest(
       users.size === 0 && patients.size === 0,
       'Failed profile creation rolls back the inactive account'
+    );
+    assertTest(auditLogs.length === 0, 'Failed registration creates no success audit entry');
+
+    resetData();
+    failAuditSave = true;
+    let auditFailure;
+    try {
+      await register({ email: 'audit.failure@example.test' });
+    } catch (error) {
+      auditFailure = error;
+    }
+    assertTest(
+      auditFailure &&
+        auditFailure.statusCode === 500 &&
+        auditFailure.message.includes('Audit logging failed'),
+      'Audit persistence failure is surfaced to the caller'
+    );
+    assertTest(
+      users.size === 0 && patients.size === 0 && auditLogs.length === 0,
+      'Failed registration audit rolls back standalone registration'
     );
 
     resetData();
@@ -247,6 +299,10 @@ const runTests = async () => {
       saveSessions.filter((session) => session === transactionSession).length === 2,
       'User and patient writes share the transaction session'
     );
+    assertTest(
+      auditSaveSessions.filter((session) => session === transactionSession).length === 1,
+      'Registration audit entry shares the transaction session'
+    );
 
     let missingDateError;
     try {
@@ -265,6 +321,7 @@ const runTests = async () => {
     User.deleteOne = originalMethods.userDeleteOne;
     Patient.prototype.save = originalMethods.patientSave;
     Patient.deleteOne = originalMethods.patientDeleteOne;
+    AuditLog.prototype.save = originalMethods.auditSave;
     if (originalMethods.connectionTransaction) {
       Object.defineProperty(
         mongoose.connection,

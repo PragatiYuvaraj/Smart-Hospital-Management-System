@@ -5,6 +5,7 @@ const DoctorAssignment = require('../models/DoctorAssignment');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
+const { recordAudit } = require('./audit.service');
 
 const createError = (statusCode, message) => {
   const error = new Error(message);
@@ -208,6 +209,13 @@ const createAssignment = async (payload = {}, requestingUser) => {
       await assignment.save();
     }
 
+    await recordAudit({
+      actorId: requestingUser._id,
+      action: 'DOCTOR_PATIENT_ASSIGNED',
+      resourceType: 'DoctorAssignment',
+      resourceId: assignment._id,
+      accessType: 'MANAGEMENT'
+    });
     return safeAssignment(assignment);
   } catch (error) {
     throw normalizeDatabaseError(
@@ -447,6 +455,13 @@ const reassign = async (assignmentId, payload = {}, requestingUser) => {
       }
     }
 
+    await recordAudit({
+      actorId: requestingUser._id,
+      action: 'DOCTOR_PATIENT_REASSIGNED',
+      resourceType: 'DoctorAssignment',
+      resourceId: nextAssignment._id,
+      accessType: 'MANAGEMENT'
+    });
     return safeAssignment(nextAssignment);
   } catch (error) {
     throw normalizeDatabaseError(

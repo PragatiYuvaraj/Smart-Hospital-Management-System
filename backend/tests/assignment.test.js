@@ -8,6 +8,7 @@ const User = require('../src/models/User');
 const Patient = require('../src/models/Patient');
 const Doctor = require('../src/models/Doctor');
 const DoctorAssignment = require('../src/models/DoctorAssignment');
+const AuditLog = require('../src/models/AuditLog');
 const generateToken = require('../src/utils/generateToken');
 
 const originalMethods = {
@@ -21,6 +22,7 @@ const originalMethods = {
   assignmentFind: DoctorAssignment.find,
   assignmentUpdateOne: DoctorAssignment.updateOne,
   assignmentSave: DoctorAssignment.prototype.save,
+  auditSave: AuditLog.prototype.save,
   connectionTransaction: Object.getOwnPropertyDescriptor(mongoose.connection, 'transaction')
 };
 
@@ -28,6 +30,7 @@ const users = new Map();
 const patients = new Map();
 const doctors = new Map();
 const assignments = new Map();
+const auditLogs = [];
 const assignmentSaveSessions = [];
 let failSaveForDoctorId = null;
 let passed = 0;
@@ -164,6 +167,11 @@ DoctorAssignment.prototype.save = async function saveAssignment(options = {}) {
   return this;
 };
 
+AuditLog.prototype.save = async function saveAudit() {
+  auditLogs.push(this);
+  return this;
+};
+
 const request = (method, path, { token, body } = {}) =>
   new Promise((resolve, reject) => {
     const payload = body === undefined ? null : JSON.stringify(body);
@@ -252,6 +260,13 @@ const runTests = async () => {
         String(firstAssignment.assignedBy) === String(manager._id),
       'Assignment type and assignedBy are set by the server'
     );
+    assertTest(
+      auditLogs.length === 1 &&
+        auditLogs[0].action === 'DOCTOR_PATIENT_ASSIGNED' &&
+        String(auditLogs[0].actorId) === String(manager._id) &&
+        String(auditLogs[0].resourceId) === String(firstAssignment._id),
+      'Assignment audit uses the authenticated manager and new assignment'
+    );
 
     const invalidPatientId = await request('POST', '/api/assignments', {
       token: managerToken,
@@ -317,6 +332,7 @@ const runTests = async () => {
       }
     });
     assertTest(duplicate.statusCode === 409, 'Duplicate active treating assignments are rejected');
+    assertTest(auditLogs.length === 1, 'Rejected assignment attempts create no success audit');
 
     const ownAssignment = await request(
       'GET',
@@ -413,6 +429,13 @@ const runTests = async () => {
         String(newAssignment.assignedBy) === String(manager._id),
       'Reassignment retains the closed history and creates a new active record'
     );
+    assertTest(
+      auditLogs.length === 2 &&
+        auditLogs[1].action === 'DOCTOR_PATIENT_REASSIGNED' &&
+        String(auditLogs[1].actorId) === String(manager._id) &&
+        String(auditLogs[1].resourceId) === String(newAssignment._id),
+      'Reassignment audit identifies the authenticated manager and replacement'
+    );
 
     const unauthorizedReassignment = await request(
       'PATCH',
@@ -457,6 +480,7 @@ const runTests = async () => {
         assignments.get(String(newAssignment._id)).status === 'ACTIVE',
       'Failed reassignment restores the previous active assignment'
     );
+    assertTest(auditLogs.length === 2, 'Failed reassignment creates no success audit');
 
     const originalReadyState = Object.getOwnPropertyDescriptor(mongoose.connection, 'readyState');
     const originalClient = Object.getOwnPropertyDescriptor(mongoose.connection, 'client');
@@ -530,6 +554,7 @@ const runTests = async () => {
     DoctorAssignment.find = originalMethods.assignmentFind;
     DoctorAssignment.updateOne = originalMethods.assignmentUpdateOne;
     DoctorAssignment.prototype.save = originalMethods.assignmentSave;
+    AuditLog.prototype.save = originalMethods.auditSave;
     if (server) {
       await new Promise((resolve) => server.close(resolve));
     }

@@ -5,14 +5,17 @@ const mongoose = require('mongoose');
 const app = require('../src/app');
 const User = require('../src/models/User');
 const Patient = require('../src/models/Patient');
+const AuditLog = require('../src/models/AuditLog');
 const generateToken = require('../src/utils/generateToken');
 
 const originalFindById = User.findById;
 const originalFindOne = Patient.findOne;
 const originalFindOneAndUpdate = Patient.findOneAndUpdate;
+const originalAuditSave = AuditLog.prototype.save;
 
 const users = new Map();
 const patients = new Map();
+const auditLogs = [];
 let passed = 0;
 let failed = 0;
 
@@ -78,6 +81,11 @@ Patient.findOneAndUpdate = async ({ userId }, update) => {
   }
   Object.assign(patient, update.$set);
   return asDocument(patient);
+};
+
+AuditLog.prototype.save = async function saveAudit() {
+  auditLogs.push(this);
+  return this;
 };
 
 const request = (method, path, { token, body } = {}) =>
@@ -159,6 +167,21 @@ const runTests = async () => {
         updated.body.data.patient.address === '45 Clinic Road',
       'Allowed profile fields are trimmed and saved'
     );
+    assertTest(
+      auditLogs.length === 1 &&
+        auditLogs[0].action === 'PATIENT_PROFILE_UPDATED' &&
+        String(auditLogs[0].actorId) === String(patientUser._id) &&
+        String(auditLogs[0].resourceId) === String(profile._id) &&
+        auditLogs[0].outcome === 'SUCCESS',
+      'Profile update audit uses the authenticated patient and profile IDs'
+    );
+    const auditFields = auditLogs[0].toObject();
+    assertTest(
+      !['password', 'passwordHash', 'email', 'contactNumber', 'address'].some(
+        (field) => Object.prototype.hasOwnProperty.call(auditFields, field)
+      ),
+      'Profile update audit excludes credentials and personal details'
+    );
 
     const beforeRestricted = {
       name: patients.get(String(patientUser._id)).name,
@@ -180,6 +203,7 @@ const runTests = async () => {
     });
     const afterRestricted = patients.get(String(patientUser._id));
     assertTest(restricted.statusCode === 400, 'Patient cannot modify restricted fields');
+    assertTest(auditLogs.length === 1, 'Rejected profile update creates no success audit entry');
     assertTest(
       afterRestricted.name === beforeRestricted.name &&
         afterRestricted.patientNumber === beforeRestricted.patientNumber &&
@@ -224,10 +248,12 @@ const runTests = async () => {
       patients.get(String(patientUser._id)).contactNumber === '0771234567',
       'Invalid input does not change the stored profile'
     );
+    assertTest(auditLogs.length === 1, 'Invalid profile update creates no success audit entry');
   } finally {
     User.findById = originalFindById;
     Patient.findOne = originalFindOne;
     Patient.findOneAndUpdate = originalFindOneAndUpdate;
+    AuditLog.prototype.save = originalAuditSave;
     await new Promise((resolve) => server.close(resolve));
   }
 

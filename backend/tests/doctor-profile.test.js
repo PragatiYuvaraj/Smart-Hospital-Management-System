@@ -5,15 +5,18 @@ const mongoose = require('mongoose');
 const app = require('../src/app');
 const User = require('../src/models/User');
 const Doctor = require('../src/models/Doctor');
+const AuditLog = require('../src/models/AuditLog');
 const generateToken = require('../src/utils/generateToken');
 
 const originalFindById = User.findById;
 const originalDoctorFindOne = Doctor.findOne;
 const originalDoctorFindById = Doctor.findById;
 const originalDoctorSave = Doctor.prototype.save;
+const originalAuditSave = AuditLog.prototype.save;
 
 const users = new Map();
 const doctors = new Map();
+const auditLogs = [];
 let passed = 0;
 let failed = 0;
 let server;
@@ -51,6 +54,11 @@ Doctor.findById = async (id) => doctors.get(String(id)) || null;
 
 Doctor.prototype.save = async function saveDoctor() {
   doctors.set(String(this._id), this);
+  return this;
+};
+
+AuditLog.prototype.save = async function saveAudit() {
+  auditLogs.push(this);
   return this;
 };
 
@@ -157,6 +165,13 @@ const runTests = async () => {
       createdDoctor && !Object.prototype.hasOwnProperty.call(createdDoctor, 'passwordHash'),
       'Created doctor profile does not include passwordHash'
     );
+    assertTest(
+      auditLogs.length === 1 &&
+        auditLogs[0].action === 'DOCTOR_PROFILE_CREATED' &&
+        String(auditLogs[0].actorId) === String(manager._id) &&
+        String(auditLogs[0].resourceId) === String(createdDoctor._id),
+      'Doctor creation audit uses the authenticated manager and profile IDs'
+    );
 
     const missingUser = await request('POST', '/api/doctors', {
       token: managerToken,
@@ -181,6 +196,7 @@ const runTests = async () => {
       body: profileBody(doctor._id, 'Neurology')
     });
     assertTest(duplicate.statusCode === 409, 'Duplicate doctor profile is rejected');
+    assertTest(auditLogs.length === 1, 'Failed doctor creation attempts create no success audit');
 
     const own = await request('GET', '/api/doctors/me', { token: generateToken(doctor) });
     assertTest(
@@ -214,6 +230,14 @@ const runTests = async () => {
         managedUpdate.body.data.doctor.department === 'Paediatrics',
       'Management can retrieve and update doctor profiles'
     );
+    assertTest(
+      auditLogs.length === 3 &&
+        auditLogs[1].action === 'DOCTOR_PROFILE_CREATED' &&
+        auditLogs[2].action === 'DOCTOR_PROFILE_UPDATED' &&
+        String(auditLogs[2].actorId) === String(manager._id) &&
+        String(auditLogs[2].resourceId) === String(otherId),
+      'Doctor creation and update audits record their authenticated manager'
+    );
 
     const patientCreate = await request('POST', '/api/doctors', {
       token: generateToken(patient),
@@ -232,6 +256,7 @@ const runTests = async () => {
         patientRead.statusCode === 403,
       'PATIENT and PHARMACY cannot perform doctor-management operations'
     );
+    assertTest(auditLogs.length === 3, 'Unauthorized doctor operations create no success audit');
 
     const before = doctors.get(String(createdDoctor._id));
     const restricted = await request('PATCH', `/api/doctors/${createdDoctor._id}`, {
@@ -251,11 +276,13 @@ const runTests = async () => {
         after.specialization === before.specialization,
       'Rejected doctor update leaves the stored profile unchanged'
     );
+    assertTest(auditLogs.length === 3, 'Rejected doctor update creates no success audit');
   } finally {
     User.findById = originalFindById;
     Doctor.findOne = originalDoctorFindOne;
     Doctor.findById = originalDoctorFindById;
     Doctor.prototype.save = originalDoctorSave;
+    AuditLog.prototype.save = originalAuditSave;
     if (server) {
       await new Promise((resolve) => server.close(resolve));
     }

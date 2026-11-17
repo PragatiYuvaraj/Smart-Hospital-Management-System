@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
+const { recordAudit } = require('./audit.service');
 
 const PROFILE_FIELDS = ['specialization', 'registrationReference', 'department'];
 const RESTRICTED_FIELDS = [
@@ -74,7 +75,7 @@ const toSafeDoctor = (doctor) => {
   return safe;
 };
 
-const createDoctorProfile = async (payload = {}) => {
+const createDoctorProfile = async (payload = {}, actorId) => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw createError(400, 'Request body must be an object.');
   }
@@ -123,6 +124,14 @@ const createDoctorProfile = async (payload = {}) => {
     throw error;
   }
 
+  await recordAudit({
+    actorId,
+    action: 'DOCTOR_PROFILE_CREATED',
+    resourceType: 'Doctor',
+    resourceId: doctor._id,
+    accessType: 'MANAGEMENT'
+  });
+
   return toSafeDoctor(doctor);
 };
 
@@ -155,7 +164,7 @@ const getDoctorProfile = async (doctorId, requestingUser) => {
   return toSafeDoctor(doctor);
 };
 
-const updateDoctorProfile = async (doctorId, payload = {}) => {
+const updateDoctorProfile = async (doctorId, payload = {}, actorId) => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw createError(400, 'Request body must be an object.');
   }
@@ -196,6 +205,14 @@ const updateDoctorProfile = async (doctorId, payload = {}) => {
     }
     throw error;
   }
+
+  await recordAudit({
+    actorId,
+    action: 'DOCTOR_PROFILE_UPDATED',
+    resourceType: 'Doctor',
+    resourceId: doctor._id,
+    accessType: 'MANAGEMENT'
+  });
 
   return toSafeDoctor(doctor);
 };

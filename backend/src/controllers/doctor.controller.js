@@ -4,7 +4,7 @@ const doctorService = require('../services/doctor.service');
 
 const createDoctorProfile = async (req, res, next) => {
   try {
-    const doctor = await doctorService.createDoctorProfile(req.body);
+    const doctor = await doctorService.createDoctorProfile(req.body, req.user._id);
 
     res.status(201).json({
       success: true,
@@ -46,7 +46,11 @@ const getDoctorProfile = async (req, res, next) => {
 
 const updateDoctorProfile = async (req, res, next) => {
   try {
-    const doctor = await doctorService.updateDoctorProfile(req.params.id, req.body);
+    const doctor = await doctorService.updateDoctorProfile(
+      req.params.id,
+      req.body,
+      req.user._id
+    );
 
     res.status(200).json({
       success: true,
