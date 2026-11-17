@@ -5,6 +5,9 @@ const env = require('./config/env');
 const healthRoutes = require('./routes/health.routes');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const patientRoutes = require('./routes/patient.routes');
+const doctorRoutes = require('./routes/doctor.routes');
+const assignmentRoutes = require('./routes/assignment.routes');
 
 const app = express();
 
@@ -31,6 +34,15 @@ app.use('/api/auth', authRoutes);
 
 // User management endpoints (Milestone 3)
 app.use('/api/users', userRoutes);
+
+// Patient self-service profile endpoints
+app.use('/api/patients', patientRoutes);
+
+// Doctor profile management endpoints
+app.use('/api/doctors', doctorRoutes);
+
+// Doctor–patient assignment management
+app.use('/api/assignments', assignmentRoutes);
 
 // Root landing endpoint
 app.get('/', (req, res) => {

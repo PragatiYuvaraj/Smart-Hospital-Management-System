@@ -9,7 +9,11 @@
     "seed": "node src/scripts/seed.js",
     "bootstrap": "node src/scripts/bootstrap.js",
     "test": "node tests/auth.test.js",
-    "test:rbac": "node tests/rbac.test.js"
+    "test:rbac": "node tests/rbac.test.js",
+    "test:registration": "node tests/patient-registration.test.js",
+    "test:profile": "node tests/patient-profile.test.js",
+    "test:doctors": "node tests/doctor-profile.test.js",
+    "test:assignments": "node tests/assignment.test.js"
   },
   "keywords": [
     "mean-stack",
