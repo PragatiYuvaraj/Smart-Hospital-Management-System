@@ -1,0 +1,603 @@
+<div class="profile-container">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Patient Profile</h2>
+        <p class="subtitle">View and update your personal contact information</p>
+      </div>
+      <a routerLink="/patient-dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading your profile...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Success Alert -->
+    <div *ngIf="successMessage" class="alert alert-success">
+      ✓ {{ successMessage }}
+    </div>
+
+    <div *ngIf="!isLoading && patient" class="profile-content">
+      <!-- Read-Only Profile Information -->
+      <section class="section">
+        <h3 class="section-title">Account & Clinical Identification</h3>
+        <table class="details-table">
+          <tbody>
+            <tr>
+              <td class="key">Patient Number:</td>
+              <td class="value">
+                <span class="patient-number-badge">
+                  <code>{{ patient.patientNumber }}</code>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="key">Full Name:</td>
+              <td class="value"><strong>{{ patient.name }}</strong></td>
+            </tr>
+            <tr>
+              <td class="key">Email Address:</td>
+              <td class="value">{{ user?.email || 'N/A' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Date of Birth:</td>
+              <td class="value">{{ patient.dateOfBirth | date:'mediumDate':'UTC' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Account Status:</td>
+              <td class="value">
+                <span class="status-badge" [ngClass]="patient.status.toLowerCase()">
+                  {{ patient.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <small class="notice-text">
+          * Patient number, name, and date of birth are clinical identifiers managed by hospital administration and cannot be changed here.
+        </small>
+      </section>
+
+      <!-- Editable Contact Details -->
+      <section class="section">
+        <h3 class="section-title">Update Contact Information</h3>
+        <form (ngSubmit)="onSubmit()" class="edit-form">
+          <div class="form-group">
+            <label for="contactNumber">Contact Phone Number</label>
+            <input
+              type="tel"
+              id="contactNumber"
+              name="contactNumber"
+              [(ngModel)]="contactNumber"
+              maxlength="30"
+              placeholder="e.g. +91 9876543210"
+              [disabled]="isSaving"
+            />
+            <span class="field-hint">Max 30 characters</span>
+          </div>
+
+          <div class="form-group">
+            <label for="address">Residential Address</label>
+            <textarea
+              id="address"
+              name="address"
+              [(ngModel)]="address"
+              rows="3"
+              maxlength="500"
+              placeholder="e.g. 123 Main Street, City, State, Postal Code"
+              [disabled]="isSaving"
+            ></textarea>
+            <span class="field-hint">Max 500 characters</span>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="isSaving"
+            >
+              <span *ngIf="isSaving">Saving Changes...</span>
+              <span *ngIf="!isSaving">Save Changes</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="onReset()"
+              [disabled]="isSaving"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        *ngIf="isPatient"
+        class="section medical-records-section"
+        aria-labelledby="upcoming-reviews-title"
+      >
+        <div class="records-heading">
+          <div>
+            <h3 id="upcoming-reviews-title" class="section-title">Upcoming Reviews</h3>
+            <p class="records-intro">
+              Scheduled follow-up reviews
+              <span *ngIf="hospitalTimezone">shown in {{ hospitalTimezone }}.</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadUpcomingReviews()"
+            [disabled]="isLoadingReviews || !hospitalTimezone"
+          >
+            {{ isLoadingReviews ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div *ngIf="isLoadingHospitalTimezone" class="records-state" role="status">
+          <div class="spinner"></div>
+          <p>Loading configured hospital timezone...</p>
+        </div>
+        <div *ngIf="hospitalTimezoneErrorMessage" class="alert alert-error" role="alert">
+          <p>{{ hospitalTimezoneErrorMessage }}</p>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadHospitalTimezone()"
+            [disabled]="isLoadingHospitalTimezone"
+          >
+            Retry
+          </button>
+        </div>
+
+        <ng-container *ngIf="hospitalTimezone && !hospitalTimezoneErrorMessage">
+          <div *ngIf="isLoadingReviews" class="records-state" role="status" aria-live="polite">
+            <div class="spinner"></div>
+            <p>Loading your review schedule...</p>
+          </div>
+          <div *ngIf="reviewsErrorMessage" class="alert alert-error" role="alert">
+            <p>{{ reviewsErrorMessage }}</p>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="loadUpcomingReviews()"
+              [disabled]="isLoadingReviews"
+            >
+              Retry
+            </button>
+          </div>
+          <div
+            *ngIf="!isLoadingReviews && !reviewsErrorMessage && reviews.length === 0"
+            class="records-empty"
+          >
+            <h4>No scheduled reviews</h4>
+            <p>Any follow-up reviews scheduled by your doctor will appear here.</p>
+          </div>
+
+          <div *ngIf="reviews.length > 0" class="medical-record-list">
+            <article *ngFor="let review of reviews" class="medical-record-card">
+              <div class="medical-record-card-heading">
+                <div>
+                  <p class="record-date">{{ formatHospitalDate(review.reviewDate) }}</p>
+                  <p class="record-reason" *ngIf="review.instructions">
+                    {{ review.instructions }}
+                  </p>
+                </div>
+                <span
+                  class="record-status"
+                  [class.overdue-status]="isReviewOverdue(review)"
+                >
+                  {{ isReviewOverdue(review) ? 'Overdue' : 'Upcoming' }}
+                </span>
+              </div>
+            </article>
+          </div>
+
+          <nav
+            *ngIf="reviewsTotalPages > 1 && !reviewsErrorMessage"
+            class="records-pagination"
+            aria-label="Review schedule pages"
+          >
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="changeReviewsPage(reviewsPage - 1)"
+              [disabled]="reviewsPage <= 1 || isLoadingReviews"
+            >
+              Previous
+            </button>
+            <span>Page {{ reviewsPage }} of {{ reviewsTotalPages }}</span>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="changeReviewsPage(reviewsPage + 1)"
+              [disabled]="reviewsPage >= reviewsTotalPages || isLoadingReviews"
+            >
+              Next
+            </button>
+          </nav>
+        </ng-container>
+      </section>
+
+      <section
+        *ngIf="isPatient"
+        class="section medical-records-section"
+        aria-labelledby="notifications-title"
+      >
+        <div class="records-heading">
+          <div>
+            <h3 id="notifications-title" class="section-title">Notifications</h3>
+            <p class="records-intro">Your review reminders and notification status.</p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadNotifications()"
+            [disabled]="isLoadingNotifications || isNotificationActionBusy"
+          >
+            {{ isLoadingNotifications ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div *ngIf="notificationActionErrorMessage" class="alert alert-error" role="alert">
+          {{ notificationActionErrorMessage }}
+        </div>
+        <div *ngIf="notificationActionSuccessMessage" class="alert alert-success" role="status">
+          {{ notificationActionSuccessMessage }}
+        </div>
+        <div *ngIf="isLoadingNotifications" class="records-state" role="status" aria-live="polite">
+          <div class="spinner"></div>
+          <p>Loading your notifications...</p>
+        </div>
+        <div *ngIf="notificationsErrorMessage" class="alert alert-error" role="alert">
+          <p>{{ notificationsErrorMessage }}</p>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadNotifications()"
+            [disabled]="isLoadingNotifications"
+          >
+            Retry
+          </button>
+        </div>
+        <div
+          *ngIf="!isLoadingNotifications && !notificationsErrorMessage && notifications.length === 0"
+          class="records-empty"
+        >
+          <h4>No notifications</h4>
+          <p>Notifications for your account will appear here.</p>
+        </div>
+
+        <div *ngIf="notifications.length > 0" class="medical-record-list">
+          <article
+            *ngFor="let notification of notifications"
+            class="medical-record-card notification-card"
+            [class.notification-unread]="notification.status === 'SENT'"
+          >
+            <div class="medical-record-card-heading">
+              <div>
+                <p class="record-date">{{ notification.title }}</p>
+                <p class="record-reason">{{ notification.message }}</p>
+              </div>
+              <span
+                class="record-status"
+                [class.failed-status]="notification.status === 'FAILED'"
+              >
+                {{ notification.status }}
+              </span>
+            </div>
+            <div class="notification-dates">
+              <span>Scheduled: {{ formatHospitalDate(notification.scheduledAt) }}</span>
+              <span>
+                {{ notification.sentAt ? 'Sent' : 'Created' }}:
+                {{ formatHospitalDate(notification.sentAt || notification.createdAt) }}
+              </span>
+              <span *ngIf="notification.readAt">
+                Read: {{ formatHospitalDate(notification.readAt) }}
+              </span>
+            </div>
+            <button
+              *ngIf="notification.status === 'SENT'"
+              type="button"
+              class="btn btn-primary"
+              (click)="markNotificationAsRead(notification)"
+              [disabled]="isNotificationActionBusy"
+            >
+              {{ notificationActionBusyId === notification._id ? 'Marking...' : 'Mark as read' }}
+            </button>
+          </article>
+        </div>
+
+        <nav
+          *ngIf="notificationsTotalPages > 1 && !notificationsErrorMessage"
+          class="records-pagination"
+          aria-label="Notification pages"
+        >
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="changeNotificationsPage(notificationsPage - 1)"
+            [disabled]="notificationsPage <= 1 || isLoadingNotifications || isNotificationActionBusy"
+          >
+            Previous
+          </button>
+          <span>Page {{ notificationsPage }} of {{ notificationsTotalPages }}</span>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="changeNotificationsPage(notificationsPage + 1)"
+            [disabled]="notificationsPage >= notificationsTotalPages || isLoadingNotifications || isNotificationActionBusy"
+          >
+            Next
+          </button>
+        </nav>
+      </section>
+
+      <section *ngIf="isPatient" class="section" aria-label="Patient-doctor messaging">
+        <app-messaging-panel></app-messaging-panel>
+      </section>
+
+      <!-- Released Prescriptions Section -->
+      <section
+        *ngIf="isPatient"
+        class="section medical-records-section"
+        aria-labelledby="prescriptions-title"
+      >
+        <div class="records-heading">
+          <div>
+            <h3 id="prescriptions-title" class="section-title">Prescriptions</h3>
+            <p class="records-intro">Medicines prescribed by your attending doctor.</p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadPrescriptions()"
+            [disabled]="isLoadingPrescriptions"
+          >
+            {{ isLoadingPrescriptions ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div *ngIf="isLoadingPrescriptions" class="records-state" role="status">
+          <div class="spinner"></div>
+          <p>Loading your prescriptions...</p>
+        </div>
+
+        <div *ngIf="prescriptionsErrorMessage" class="alert alert-error" role="alert">
+          {{ prescriptionsErrorMessage }}
+        </div>
+
+        <div
+          *ngIf="!isLoadingPrescriptions && !prescriptionsErrorMessage && prescriptions.length === 0"
+          class="empty-state"
+        >
+          <p class="empty-title">No released prescriptions found.</p>
+          <p class="empty-subtitle">Prescriptions issued and released during your consultations will appear here.</p>
+        </div>
+
+        <div *ngIf="!isLoadingPrescriptions && !prescriptionsErrorMessage && prescriptions.length > 0" class="prescriptions-list">
+          <article *ngFor="let rx of prescriptions" class="medical-record-card">
+            <div class="medical-record-card-heading">
+              <div>
+                <p class="record-date">Issued: {{ rx.issuedAt | date:'mediumDate' }}</p>
+                <p class="record-reason" *ngIf="rx.doctor">Prescribing Doctor: Dr. {{ rx.doctor.name }} ({{ rx.doctor.specialization || 'Clinical Staff' }})</p>
+              </div>
+              <span class="status-badge" [ngClass]="rx.status.toLowerCase()">{{ rx.status }}</span>
+            </div>
+
+            <table class="details-table" style="margin-top: 12px; width: 100%;">
+              <thead>
+                <tr style="background: #f8fafc; font-size: 0.8rem; text-align: left; color: #475569;">
+                  <th style="padding: 6px 8px;">Medicine</th>
+                  <th style="padding: 6px 8px;">Dosage / Route</th>
+                  <th style="padding: 6px 8px;">Frequency</th>
+                  <th style="padding: 6px 8px;">Duration</th>
+                  <th style="padding: 6px 8px;">Qty Prescribed</th>
+                  <th style="padding: 6px 8px;">Dispensed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of rx.items" style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">
+                  <td style="padding: 6px 8px;">
+                    <strong>{{ item.medicine?.name || 'Medicine' }}</strong>
+                    <small *ngIf="item.medicine?.strength">({{ item.medicine.strength }})</small>
+                    <div *ngIf="item.instructions" style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                      Instructions: {{ item.instructions }}
+                    </div>
+                  </td>
+                  <td style="padding: 6px 8px;">{{ item.dosage }} <span *ngIf="item.route">({{ item.route }})</span></td>
+                  <td style="padding: 6px 8px;">{{ item.frequency }}</td>
+                  <td style="padding: 6px 8px;">{{ item.duration }}</td>
+                  <td style="padding: 6px 8px;">{{ item.quantity }}</td>
+                  <td style="padding: 6px 8px;">
+                    <span class="status-badge" [ngClass]="item.dispensedQuantity >= item.quantity ? 'active' : 'inactive'">
+                      {{ item.dispensedQuantity || 0 }} / {{ item.quantity }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </div>
+      </section>
+
+      <section class="section medical-records-section" aria-labelledby="medical-records-title">
+        <div class="records-heading">
+          <div>
+            <h3 id="medical-records-title" class="section-title">Medical Records</h3>
+            <p class="records-intro">
+              Showing consultations your doctor has finalized and released to you.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadMedicalRecords()"
+            [disabled]="isLoadingMedicalRecords"
+          >
+            {{ isLoadingMedicalRecords ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div *ngIf="isLoadingMedicalRecords" class="records-state" role="status" aria-live="polite">
+          <div class="spinner"></div>
+          <p>Loading your medical records...</p>
+        </div>
+
+        <div *ngIf="medicalRecordsErrorMessage" class="alert alert-error" role="alert">
+          <p>{{ medicalRecordsErrorMessage }}</p>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadMedicalRecords()"
+            [disabled]="isLoadingMedicalRecords"
+          >
+            Retry
+          </button>
+        </div>
+
+        <div
+          *ngIf="!isLoadingMedicalRecords && !medicalRecordsErrorMessage && medicalRecords.length === 0"
+          class="records-empty"
+        >
+          <h4>No released medical records yet</h4>
+          <p>Records will appear here after your doctor finalizes and releases them.</p>
+        </div>
+
+        <div *ngIf="medicalRecords.length > 0" class="medical-record-list">
+          <article *ngFor="let record of medicalRecords" class="medical-record-card">
+            <div class="medical-record-card-heading">
+              <div>
+                <p class="record-date">{{ record.encounterDate | date:'mediumDate' }}</p>
+                <p class="record-reason">{{ record.reason }}</p>
+              </div>
+              <span class="record-status">Finalized · Released</span>
+            </div>
+            <dl class="record-summary">
+              <div>
+                <dt>Diagnosis</dt>
+                <dd>{{ record.diagnosis }}</dd>
+              </div>
+              <div>
+                <dt>Treatment plan</dt>
+                <dd>{{ record.treatmentPlan }}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="openMedicalRecord(record._id)"
+              [disabled]="isLoadingRecordDetail && activeRecordId === record._id"
+            >
+              {{ isLoadingRecordDetail && activeRecordId === record._id
+                ? 'Loading details...'
+                : 'View details' }}
+            </button>
+          </article>
+        </div>
+
+        <nav
+          *ngIf="medicalRecordsTotalPages > 1 && !medicalRecordsErrorMessage"
+          class="records-pagination"
+          aria-label="Medical record pages"
+        >
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="changeMedicalRecordsPage(medicalRecordsPage - 1)"
+            [disabled]="medicalRecordsPage <= 1 || isLoadingMedicalRecords"
+          >
+            Previous
+          </button>
+          <span>Page {{ medicalRecordsPage }} of {{ medicalRecordsTotalPages }}</span>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="changeMedicalRecordsPage(medicalRecordsPage + 1)"
+            [disabled]="medicalRecordsPage >= medicalRecordsTotalPages || isLoadingMedicalRecords"
+          >
+            Next
+          </button>
+        </nav>
+
+        <section *ngIf="activeRecordId" class="medical-record-detail" aria-live="polite">
+          <div class="detail-heading">
+            <h4>Medical Record Details</h4>
+            <button type="button" class="btn btn-secondary" (click)="closeMedicalRecord()">
+              Close
+            </button>
+          </div>
+
+          <div *ngIf="isLoadingRecordDetail" class="records-state" role="status">
+            <div class="spinner"></div>
+            <p>Loading record details...</p>
+          </div>
+
+          <div *ngIf="recordDetailErrorMessage" class="alert alert-error" role="alert">
+            <p>{{ recordDetailErrorMessage }}</p>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="openMedicalRecord(activeRecordId)"
+              [disabled]="isLoadingRecordDetail"
+            >
+              Retry
+            </button>
+          </div>
+
+          <article *ngIf="selectedMedicalRecord as record" class="detail-content">
+            <p class="record-date">{{ record.encounterDate | date:'fullDate' }}</p>
+            <span class="record-status">Finalized · Released</span>
+            <dl class="record-detail-list">
+              <div>
+                <dt>Reason for consultation</dt>
+                <dd>{{ record.reason }}</dd>
+              </div>
+              <div>
+                <dt>Symptoms</dt>
+                <dd>{{ record.symptoms }}</dd>
+              </div>
+              <div *ngIf="record.observations">
+                <dt>Observations</dt>
+                <dd>{{ record.observations }}</dd>
+              </div>
+              <div>
+                <dt>Diagnosis</dt>
+                <dd>{{ record.diagnosis }}</dd>
+              </div>
+              <div>
+                <dt>Treatment plan</dt>
+                <dd>{{ record.treatmentPlan }}</dd>
+              </div>
+              <div *ngIf="record.doctor">
+                <dt>Doctor</dt>
+                <dd>
+                  {{ record.doctor.name }}
+                  <span *ngIf="record.doctor.specialization"> · {{ record.doctor.specialization }}</span>
+                </dd>
+              </div>
+            </dl>
+
+            <section *ngIf="record.amendments.length > 0" class="amendments-section">
+              <h5>Amendment history</h5>
+              <article *ngFor="let amendment of record.amendments" class="amendment-card">
+                <p class="amendment-title">{{ amendment.reason }}</p>
+                <p>{{ amendment.changes }}</p>
+                <small>
+                  {{ amendment.authorName }} · {{ amendment.createdAt | date:'medium' }}
+                </small>
+              </article>
+            </section>
+          </article>
+        </section>
+      </section>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+// Load environment variables from backend/.env (same directory as env.js)
+dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
+
 const env = require('../config/env');
 const User = require('../models/User');
 
@@ -6,7 +10,7 @@ const demoAccounts = [
   {
     name: 'Dr. Sarah Jenkins',
     email: 'doctor@smarthospital.local',
-    password: 'Doctor@123',
+    password: process.env.DEMO_DOCTOR_PASSWORD,
     role: 'DOCTOR',
     permissions: ['DUTY_DOCTOR', 'VAULT_ACCESS'],
     status: 'ACTIVE'
@@ -14,7 +18,7 @@ const demoAccounts = [
   {
     name: 'Alex Rivera (Pharmacy Staff)',
     email: 'pharmacy@smarthospital.local',
-    password: 'Pharmacy@123',
+    password: process.env.DEMO_PHARMACY_PASSWORD,
     role: 'PHARMACY',
     permissions: [],
     status: 'ACTIVE'
@@ -22,12 +26,18 @@ const demoAccounts = [
   {
     name: 'John Doe (Patient)',
     email: 'patient@smarthospital.local',
-    password: 'Patient@123',
+    password: process.env.DEMO_PATIENT_PASSWORD,
     role: 'PATIENT',
     permissions: [],
     status: 'ACTIVE'
   }
 ];
+
+const handleExistingAccount = (account, existing, logger = console) => {
+  if (!existing) return false;
+  logger.log(`[Seed] Notice: ${account.role} account (${account.email}) already exists. Preserving password.`);
+  return true;
+};
 
 const seedDemoAccounts = async () => {
   try {
@@ -41,29 +51,21 @@ const seedDemoAccounts = async () => {
 
     for (const account of demoAccounts) {
       const existing = await User.findOne({ email: account.email });
-      if (existing) {
-        console.log(`[Seed] Notice: ${account.role} account (${account.email}) already exists. Preserving password.`);
-      } else {
-        const newUser = new User({
-          name: account.name,
-          email: account.email,
-          passwordHash: account.password, // Automatically hashed by User pre-save hook
-          role: account.role,
-          permissions: account.permissions,
-          status: account.status
-        });
-        await newUser.save();
-        console.log(`[Seed] Success: Created demo ${account.role} account -> ${account.email}`);
-      }
+      if (handleExistingAccount(account, existing)) continue;
+
+      const newUser = new User({
+        name: account.name,
+        email: account.email,
+        passwordHash: account.password, // Automatically hashed by User pre-save hook
+        role: account.role,
+        permissions: account.permissions,
+        status: account.status
+      });
+      await newUser.save();
+      console.log(`[Seed] Success: Created demo ${account.role} account -> ${account.email}`);
     }
 
-    console.log('\n[Seed] Demonstration Credentials:');
-    console.log('------------------------------------------------------------');
-    console.log('DOCTOR:   Email: doctor@smarthospital.local   | Password: Doctor@123');
-    console.log('PHARMACY: Email: pharmacy@smarthospital.local | Password: Pharmacy@123');
-    console.log('PATIENT:  Email: patient@smarthospital.local  | Password: Patient@123');
-    console.log('------------------------------------------------------------');
-    console.log('[Seed] Demonstration seeding complete.\n');
+    // Removed credential logging for CI safety
 
     await mongoose.connection.close();
     process.exit(0);
@@ -76,4 +78,18 @@ const seedDemoAccounts = async () => {
   }
 };
 
-seedDemoAccounts();
+if (require.main === module) {
+  const missing = [];
+  if (!process.env.DEMO_DOCTOR_PASSWORD) missing.push('DEMO_DOCTOR_PASSWORD');
+  if (!process.env.DEMO_PHARMACY_PASSWORD) missing.push('DEMO_PHARMACY_PASSWORD');
+  if (!process.env.DEMO_PATIENT_PASSWORD) missing.push('DEMO_PATIENT_PASSWORD');
+  if (missing.length) {
+    console.error('[Seed Error] Missing required environment variable(s):');
+    missing.forEach(v => console.error(`  • ${v}`));
+    process.exit(1);
+  }
+
+  seedDemoAccounts();
+}
+
+module.exports = { handleExistingAccount };

@@ -1,0 +1,107 @@
+<div class="pharmacy-container">
+
+  <!-- Header -->
+  <div class="card header-card">
+    <div class="header-row">
+      <div class="header-title">
+        <div class="header-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Pharmacy Dashboard</h2>
+          <p class="subtitle">Welcome, {{ user?.name || 'Pharmacy Staff' }}</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary" (click)="onLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  <div *ngIf="statsError" class="error-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ statsError }}
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="summary-card pending">
+      <div class="summary-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="summary-info">
+        <span class="summary-label">Pending Prescriptions</span>
+        <span class="summary-value">
+          <span *ngIf="loadingStats" class="loading-dot">…</span>
+          <span *ngIf="!loadingStats && pendingCount !== null">{{ pendingCount }}</span>
+          <span *ngIf="!loadingStats && pendingCount === null">—</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-card medicines">
+      <div class="summary-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="summary-info">
+        <span class="summary-label">Active Medicines</span>
+        <span class="summary-value">
+          <span *ngIf="loadingStats" class="loading-dot">…</span>
+          <span *ngIf="!loadingStats && medicineCount !== null">{{ medicineCount }}</span>
+          <span *ngIf="!loadingStats && medicineCount === null">—</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Navigation -->
+  <div class="card">
+    <h3 class="section-title">Pharmacy Workflows</h3>
+    <div class="nav-grid">
+      <a routerLink="/pharmacy-prescriptions" class="nav-tile pending-tile">
+        <div class="tile-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div>
+          <div class="tile-title">Prescription Queue</div>
+          <div class="tile-desc">View and dispense pending prescriptions</div>
+        </div>
+        <svg class="tile-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+
+      <a routerLink="/pharmacy-medicines" class="nav-tile medicine-tile">
+        <div class="tile-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="tile-title">Medicine Catalogue</div>
+          <div class="tile-desc">Browse stock levels and batch availability</div>
+        </div>
+        <svg class="tile-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Session -->
+  <div class="card">
+    <h3 class="section-title">Session Details</h3>
+    <table class="details-table">
+      <tbody>
+        <tr><td class="key">Name:</td><td class="value">{{ user?.name }}</td></tr>
+        <tr><td class="key">Email:</td><td class="value">{{ user?.email }}</td></tr>
+        <tr><td class="key">Role:</td><td class="value"><span class="badge badge-pharmacy">PHARMACY</span></td></tr>
+        <tr><td class="key">Status:</td><td class="value"><span class="badge badge-active">{{ user?.status }}</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

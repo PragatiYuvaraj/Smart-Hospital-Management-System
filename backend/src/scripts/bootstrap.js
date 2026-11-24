@@ -65,7 +65,7 @@ async function bootstrap() {
   console.log('╚══════════════════════════════════════════════════════╝\n');
 
   // 1. Connect to MongoDB
-  console.log(`[Bootstrap] Connecting to MongoDB: ${MONGODB_URI}`);
+  console.log('[Bootstrap] Connecting to configured MongoDB deployment.');
   await mongoose.connect(MONGODB_URI);
   console.log('[Bootstrap] MongoDB connected.\n');
 

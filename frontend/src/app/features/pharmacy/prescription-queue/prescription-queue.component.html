@@ -1,0 +1,218 @@
+<div class="page-container">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/pharmacy-dashboard" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Dashboard
+      </a>
+      <h2>Prescription Queue</h2>
+      <p class="subtitle">PENDING and PARTIALLY DISPENSED prescriptions</p>
+    </div>
+  </div>
+
+  <!-- Success Banner -->
+  <div *ngIf="dispenseSuccessMessage" class="success-banner">
+    ✓ {{ dispenseSuccessMessage }}
+  </div>
+
+  <!-- Search Bar -->
+  <div class="card search-card">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by patient name or patient number…"
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="onSearch()"
+        />
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">✕</button>
+      </div>
+      <button class="btn btn-primary" (click)="onSearch()" [disabled]="isLoading">
+        Search
+      </button>
+      <button class="btn btn-secondary" (click)="loadPrescriptions()" [disabled]="isLoading">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="state-card center">
+    <div class="spinner"></div>
+    <p>Loading prescription queue…</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="!isLoading && errorMessage" class="error-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ errorMessage }}
+    <button class="retry-btn" (click)="loadPrescriptions()">Retry</button>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!isLoading && !errorMessage && prescriptions.length === 0" class="state-card center">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <p>No pending prescriptions found.</p>
+    <p *ngIf="searchTerm" class="hint">Try clearing the search filter.</p>
+  </div>
+
+  <!-- Prescription List -->
+  <div *ngIf="!isLoading && !errorMessage && prescriptions.length > 0" class="prescription-list">
+
+    <!-- Result count -->
+    <div class="result-count">
+      Showing {{ prescriptions.length }} of {{ total }} result<span *ngIf="total !== 1">s</span>
+    </div>
+
+    <div *ngFor="let rx of prescriptions" class="prescription-card">
+      <!-- Card Header -->
+      <div class="rx-header" (click)="toggleExpand(rx._id)">
+        <div class="rx-info">
+          <div class="rx-top-row">
+            <span class="rx-patient">
+              {{ rx.patient?.name || '— Unknown Patient —' }}
+              <span *ngIf="rx.patient?.patientNumber" class="rx-pid">({{ rx.patient!.patientNumber }})</span>
+            </span>
+            <span class="status-badge" [ngClass]="statusClass(rx.status)">{{ rx.status }}</span>
+          </div>
+          <div class="rx-meta">
+            <span>Issued: {{ formatDate(rx.issuedAt) }}</span>
+            <span *ngIf="rx.doctor"> · Dr. {{ rx.doctor.name }}</span>
+            <span> · {{ rx.items.length }} item<span *ngIf="rx.items.length !== 1">s</span></span>
+          </div>
+        </div>
+        <div class="expand-icon" [ngClass]="{ 'rotated': isExpanded(rx._id) }">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+
+      <!-- Expanded Items -->
+      <div *ngIf="isExpanded(rx._id)" class="rx-items">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Medicine</th>
+              <th>Strength / Form</th>
+              <th>Dosage</th>
+              <th>Frequency</th>
+              <th>Duration</th>
+              <th>Prescribed</th>
+              <th>Dispensed</th>
+              <th>Remaining</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of rx.items">
+              <td>
+                <span *ngIf="item.medicine">
+                  <strong>{{ item.medicine.name }}</strong>
+                  <small class="med-id">({{ item.medicine.identifier }})</small>
+                </span>
+                <span *ngIf="!item.medicine" class="text-muted">Unknown medicine</span>
+              </td>
+              <td>{{ item.medicine?.strength || '—' }} / {{ item.medicine?.form || '—' }}</td>
+              <td>{{ item.dosage }}</td>
+              <td>{{ item.frequency }}</td>
+              <td>{{ item.duration }}</td>
+              <td class="qty-cell">{{ item.quantity }}</td>
+              <td class="qty-cell">{{ item.dispensedQuantity || 0 }}</td>
+              <td class="qty-cell" [ngClass]="{ 'qty-remaining': remainingQty(item) > 0 }">
+                {{ remainingQty(item) }}
+              </td>
+              <td>
+                <button
+                  *ngIf="remainingQty(item) > 0"
+                  class="btn btn-sm btn-primary"
+                  (click)="openDispenseModal(rx, item)"
+                >
+                  Dispense
+                </button>
+                <span *ngIf="remainingQty(item) <= 0" class="status-badge dispensed">Done</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="rx.items[0]?.instructions" class="rx-note">
+          <strong>Instructions:</strong> {{ rx.items[0].instructions }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination">
+      <button class="page-btn" (click)="goToPage(page - 1)" [disabled]="page <= 1">‹ Prev</button>
+      <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
+      <button class="page-btn" (click)="goToPage(page + 1)" [disabled]="page >= totalPages">Next ›</button>
+    </div>
+
+  </div>
+
+  <!-- Dispense Modal -->
+  <div *ngIf="showDispenseModal" class="modal-backdrop" (click)="closeDispenseModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Dispense Medicine</h3>
+        <button class="modal-close-btn" (click)="closeDispenseModal()">✕</button>
+      </div>
+
+      <div *ngIf="dispenseErrorMessage" class="error-banner" style="margin-bottom: 16px;">
+        {{ dispenseErrorMessage }}
+      </div>
+
+      <div class="dispense-summary" *ngIf="selectedItem && selectedRx">
+        <p><strong>Medicine:</strong> {{ selectedItem.medicine?.name }} ({{ selectedItem.medicine?.identifier }})</p>
+        <p><strong>Prescribed Qty:</strong> {{ selectedItem.quantity }} | <strong>Remaining:</strong> {{ remainingQty(selectedItem) }}</p>
+        <p><strong>Patient:</strong> {{ selectedRx.patient?.name }}</p>
+      </div>
+
+      <div *ngIf="isLoadingBatches" class="state-card center" style="padding: 20px;">
+        <div class="spinner"></div>
+        <p>Checking available stock batches…</p>
+      </div>
+
+      <div *ngIf="!isLoadingBatches && availableBatches.length === 0" class="error-banner" style="margin: 16px 0;">
+        No active, non-expired stock batches found for this medicine. Cannot dispense.
+      </div>
+
+      <form *ngIf="!isLoadingBatches && availableBatches.length > 0" (ngSubmit)="submitDispense()">
+        <div class="form-group">
+          <label>Select Inventory Batch <span class="required">*</span></label>
+          <select [(ngModel)]="selectedBatchId" name="selectedBatchId" class="form-control" required>
+            <option value="" disabled>-- Select Stock Batch --</option>
+            <option *ngFor="let b of availableBatches" [value]="b._id">
+              Batch: {{ b.batchNumber }} | Available: {{ b.availableQuantity }} | Exp: {{ formatDate(b.expiryDate) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Quantity to Dispense <span class="required">*</span></label>
+          <input
+            type="number"
+            [(ngModel)]="dispenseQuantity"
+            name="dispenseQuantity"
+            class="form-control"
+            min="1"
+            [max]="remainingQty(selectedItem!)"
+            required
+          />
+          <small class="hint">Max allowed: {{ remainingQty(selectedItem!) }}</small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeDispenseModal()" [disabled]="isSubmittingDispense">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="isSubmittingDispense || !selectedBatchId">
+            <span *ngIf="isSubmittingDispense">Dispensing...</span>
+            <span *ngIf="!isSubmittingDispense">Confirm Dispense</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

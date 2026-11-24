@@ -1,9 +1,7 @@
-const dns = require("node:dns");
-
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = require('./src/app');
 const env = require('./src/config/env');
 const { connectDB } = require('./src/config/db');
+const { startReviewReminderJob } = require('./src/jobs/reviewReminder.job');
 
 /**
  * Initializes and starts the Express HTTP server
@@ -11,6 +9,7 @@ const { connectDB } = require('./src/config/db');
 const startServer = async () => {
   // Attempt MongoDB connection
   await connectDB();
+  startReviewReminderJob();
 
   // Listen on configured port
   const server = app.listen(env.PORT, () => {
@@ -31,4 +30,8 @@ const startServer = async () => {
   return server;
 };
 
-startServer();
+if (require.main === module && env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+module.exports = { startServer };

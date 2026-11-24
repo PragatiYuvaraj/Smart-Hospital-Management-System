@@ -11,11 +11,19 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
+const parseCorsOrigins = () => {
+  if (process.env.CORS_ORIGINS && process.env.CORS_ORIGINS.trim()) {
+    return process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
+  }
+  return [process.env.CLIENT_URL || 'http://localhost:4200'];
+};
+
 const env = {
   PORT: process.env.PORT || 5000,
   NODE_ENV: process.env.NODE_ENV || 'development',
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_hospital',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:4200',
+  CORS_ORIGINS: parseCorsOrigins(),
   JWT_SECRET: JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
   HOSPITAL_TIMEZONE: process.env.HOSPITAL_TIMEZONE || 'Asia/Kolkata',

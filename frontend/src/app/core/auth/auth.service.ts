@@ -1,8 +1,25 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, map, catchError, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  catchError,
+  finalize,
+  map,
+  of,
+  shareReplay,
+  tap,
+  throwError
+} from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { User, AuthResponse, ProfileResponse, LoginRequest, RegisterRequest } from '../models/user.model';
+import {
+  AuthResponse,
+  LoginRequest,
+  ProfileResponse,
+  RegisterRequest,
+  User,
+  UserRole
+} from '../models/user.model';
 
 /**
  * =========================================================================
@@ -29,14 +46,12 @@ export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
+  private profileRequest: Observable<User | null> | null = null;
+  private profileValidated = false;
+  private sessionVersion = 0;
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    // If a token exists on startup, refresh user profile to verify validity
-    if (this.getToken()) {
-      this.fetchProfile().subscribe();
-    }
-  }
+  constructor(private http: HttpClient) {}
 
   /**
    * Registers a new patient account
@@ -68,27 +83,62 @@ export class AuthService {
    * Fetches the current authenticated user's profile from the backend
    */
   fetchProfile(): Observable<User | null> {
-    return this.http.get<ProfileResponse>(`${this.apiUrl}/me`).pipe(
+    const token = this.getToken();
+    if (!token) {
+      return of(null);
+    }
+
+    if (this.profileValidated) {
+      return of(this.currentUserSubject.value);
+    }
+
+    if (this.profileRequest) {
+      return this.profileRequest;
+    }
+
+    const sessionVersion = this.sessionVersion;
+    this.profileRequest = this.http.get<ProfileResponse>(`${this.apiUrl}/me`).pipe(
       map((res) => {
-        if (res.success && res.data) {
-          this.currentUserSubject.next(res.data.user);
-          localStorage.setItem(this.USER_KEY, JSON.stringify(res.data.user));
-          return res.data.user;
+        if (!res.success || !res.data?.user) {
+          throw new Error('The server returned an invalid user profile.');
         }
-        return null;
+        return res.data.user;
       }),
-      catchError(() => {
-        // If token expired or invalid, clear session
-        this.logout();
-        return of(null);
-      })
+      map((user) => {
+        if (this.sessionVersion !== sessionVersion || this.getToken() !== token) {
+          return null;
+        }
+
+        this.saveUser(user);
+        this.profileValidated = true;
+        return user;
+      }),
+      catchError((error: unknown) => {
+        if (this.isInvalidSessionError(error)) {
+          this.logout();
+          return of(null);
+        }
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        this.profileRequest = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+    return this.profileRequest;
+  }
+
+  ensureAuthenticatedUser(): Observable<User | null> {
+    return this.fetchProfile();
   }
 
   /**
    * Logs out the user and clears all cached tokens and profiles
    */
   logout(): void {
+    this.sessionVersion++;
+    this.profileValidated = false;
+    this.profileRequest = null;
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
@@ -118,8 +168,21 @@ export class AuthService {
   /**
    * Returns current user's role
    */
-  getUserRole(): string | null {
+  getUserRole(): UserRole | null {
     return this.currentUserSubject.value?.role || null;
+  }
+
+  getRoleHome(role: UserRole | null = this.getUserRole()): string {
+    switch (role) {
+      case 'PATIENT':
+        return '/patient-dashboard';
+      case 'DOCTOR':
+        return '/doctor-dashboard';
+      case 'PHARMACY':
+        return '/pharmacy-dashboard';
+      default:
+        return '/login';
+    }
   }
 
   /**
@@ -132,9 +195,29 @@ export class AuthService {
   // --- Private Session Management Helpers ---
 
   private saveSession(token: string, user: User): void {
+    this.sessionVersion++;
+    this.profileRequest = null;
+    this.profileValidated = true;
     localStorage.setItem(this.TOKEN_KEY, token);
+    this.saveUser(user);
+  }
+
+  private saveUser(user: User): void {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  private isInvalidSessionError(error: unknown): boolean {
+    if (typeof error !== 'object' || error === null || !('status' in error)) {
+      return false;
+    }
+
+    const response = error as { status: number; error?: { message?: unknown } };
+    const message = typeof response.error?.message === 'string'
+      ? response.error.message.toLowerCase()
+      : '';
+    return response.status === 401 ||
+      (response.status === 403 && message.startsWith('account is inactive'));
   }
 
   private getStoredUser(): User | null {

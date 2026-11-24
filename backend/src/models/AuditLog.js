@@ -15,10 +15,16 @@ const accessContextSchema = new mongoose.Schema(
 
 const auditLogSchema = new mongoose.Schema(
   {
+    actorType: {
+      type: String,
+      enum: ['USER', 'SYSTEM'],
+      default: 'USER',
+      required: true
+    },
     actorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Audit actor is required']
+      required: function () { return this.actorType === 'USER'; }
     },
     action: {
       type: String,

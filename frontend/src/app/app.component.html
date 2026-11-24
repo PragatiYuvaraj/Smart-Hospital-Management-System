@@ -1,33 +1,241 @@
-<header class="navbar">
-  <div class="navbar-brand">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-    </svg>
-    <a routerLink="/" style="color: #ffffff; text-decoration: none; font-weight: 700;">{{ title }}</a>
-    <span class="badge-tag">MEAN Stack</span>
-  </div>
+<!-- ==========================================================================
+     UNAUTHENTICATED SHELL (Guest layout: Login, Register)
+     ========================================================================== -->
+<div *ngIf="!(currentUser$ | async); else authShell" class="guest-layout">
+  <header class="guest-header">
+    <div class="guest-brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <div>
+        <a routerLink="/" class="brand-title">{{ title }}</a>
+        <span class="brand-subtitle">{{ subtitle }}</span>
+      </div>
+    </div>
 
-  <nav class="nav-links">
-    <!-- Unauthenticated Nav -->
-    <ng-container *ngIf="!(currentUser$ | async); else userNav">
-      <a routerLink="/login" class="nav-link" routerLinkActive="active">Sign In</a>
-      <a routerLink="/register" class="nav-link" routerLinkActive="active">Register (Patient)</a>
-    </ng-container>
+    <nav class="guest-nav">
+      <a routerLink="/login" class="guest-nav-link" routerLinkActive="active">Sign In</a>
+      <a routerLink="/register" class="btn btn-primary btn-sm" routerLinkActive="active">Patient Registration</a>
+    </nav>
+  </header>
 
-    <!-- Authenticated Nav -->
-    <ng-template #userNav>
-      <ng-container *ngIf="currentUser$ | async as user">
-        <span class="user-greeting">
-          Signed in as <strong>{{ user.name }}</strong>
-          <span class="role-pill">{{ user.role }}</span>
-        </span>
-        <a routerLink="/dashboard" class="nav-link" routerLinkActive="active">Dashboard</a>
-        <button class="btn-nav-logout" (click)="onLogout()">Sign Out</button>
-      </ng-container>
-    </ng-template>
-  </nav>
-</header>
+  <main class="guest-main">
+    <router-outlet></router-outlet>
+  </main>
+</div>
 
-<main>
-  <router-outlet></router-outlet>
-</main>
+<!-- ==========================================================================
+     AUTHENTICATED APPLICATION SHELL (Sidebar + Top Bar + Content Canvas)
+     ========================================================================== -->
+<ng-template #authShell>
+  <ng-container *ngIf="currentUser$ | async as user">
+    <div class="app-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+
+      <!-- Backdrop for mobile drawer -->
+      <div *ngIf="isMobileMenuOpen" class="mobile-backdrop" (click)="closeMobileMenu()"></div>
+
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="app-sidebar" [class.mobile-open]="isMobileMenuOpen">
+        <!-- Sidebar Brand Header -->
+        <div class="sidebar-brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">{{ title }}</span>
+            <span class="brand-badge">{{ user.role }}</span>
+          </div>
+          <!-- Desktop Collapse Toggle -->
+          <button class="btn-toggle-sidebar" (click)="toggleSidebar()" title="Toggle sidebar">
+            <svg *ngIf="!isSidebarCollapsed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            <svg *ngIf="isSidebarCollapsed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- User Identity Snapshot -->
+        <div class="sidebar-user">
+          <div class="user-avatar" [class]="user.role.toLowerCase()">
+            {{ getUserInitials(user.name) }}
+          </div>
+          <div class="user-meta">
+            <div class="user-name" [title]="user.name">{{ user.name }}</div>
+            <div class="user-role-badge">
+              <span class="status-dot"></span>
+              {{ user.role }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="sidebar-nav">
+          <div class="nav-section-title">CLINICAL WORKFLOW</div>
+
+          <!-- Role Home Dashboard Link -->
+          <a [routerLink]="authService.getRoleHome(user.role)" class="nav-item" routerLinkActive="active">
+            <div class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </div>
+            <span class="nav-label">Dashboard</span>
+          </a>
+
+          <!-- PATIENT LINKS -->
+          <ng-container *ngIf="user.role === 'PATIENT'">
+            <a routerLink="/patient-profile" class="nav-item" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <span class="nav-label">Profile & History</span>
+            </a>
+
+            <a routerLink="/patient-profile" fragment="prescriptions" class="nav-item">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <span class="nav-label">Prescriptions</span>
+            </a>
+          </ng-container>
+
+          <!-- DOCTOR LINKS -->
+          <ng-container *ngIf="user.role === 'DOCTOR'">
+            <a routerLink="/doctor-patients" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <span class="nav-label">Assigned Patients</span>
+            </a>
+
+            <a routerLink="/doctor-profile" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <span class="nav-label">Doctor Profile</span>
+            </a>
+
+            <a *ngIf="authService.hasPermission('VAULT_ACCESS')" routerLink="/doctor-vault" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <span class="nav-label">Document Vault</span>
+            </a>
+          </ng-container>
+
+          <!-- PHARMACY LINKS -->
+          <ng-container *ngIf="user.role === 'PHARMACY'">
+            <a routerLink="/pharmacy-dashboard" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+                </svg>
+              </div>
+              <span class="nav-label">Overview</span>
+            </a>
+
+            <a routerLink="/pharmacy-prescriptions" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <span class="nav-label">Prescription Queue</span>
+            </a>
+
+            <a routerLink="/pharmacy-medicines" class="nav-item" routerLinkActive="active">
+              <div class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <span class="nav-label">Medicine Stock</span>
+            </a>
+          </ng-container>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <div class="system-status">
+            <span class="status-beacon"></span>
+            <span class="status-label">Clinical Core Active</span>
+          </div>
+          <button class="btn-sidebar-logout" (click)="onLogout()" title="Sign Out">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span class="logout-label">Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ================= CONTENT AREA ================= -->
+      <div class="app-main-area">
+
+        <!-- Top Navigation Bar -->
+        <header class="app-topbar">
+          <div class="topbar-left">
+            <!-- Mobile Toggle -->
+            <button class="btn-mobile-menu" (click)="toggleMobileMenu()" title="Open navigation">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <span class="topbar-context-title">Smart Hospital System</span>
+          </div>
+
+          <div class="topbar-right">
+            <span class="topbar-user-badge" [class]="user.role.toLowerCase()">
+              {{ user.role }}
+            </span>
+            <span class="topbar-user-name">{{ user.name }}</span>
+            <button class="btn btn-secondary btn-sm" (click)="onLogout()">
+              Sign Out
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-content-canvas">
+          <router-outlet></router-outlet>
+        </main>
+      </div>
+
+    </div>
+  </ng-container>
+</ng-template>

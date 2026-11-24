@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { getAuthErrorMessage } from '../../../core/auth/auth-error.util';
 
 @Component({
   selector: 'app-login',
@@ -19,8 +20,15 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    route: ActivatedRoute
+  ) {
+    if (route.snapshot.queryParamMap.has('sessionExpired')) {
+      this.errorMessage = 'Your session expired. Please sign in again.';
+    } else if (route.snapshot.queryParamMap.has('sessionCheckFailed')) {
+      this.errorMessage = 'Your session could not be verified. Please sign in again.';
+    }
+  }
 
   onSubmit(): void {
     if (!this.email || !this.password) {
@@ -34,31 +42,34 @@ export class LoginComponent {
     this.authService.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
         this.isLoading = false;
-        if (res.success) {
-          this.router.navigate(['/dashboard']);
+        if (res.success && res.data?.user) {
+          void this.router.navigateByUrl(this.authService.getRoleHome(res.data.user.role));
+        } else {
+          this.errorMessage = res.message || 'Login failed. Please try again.';
         }
       },
-      error: (err) => {
+      error: (error: unknown) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Login failed. Please check your credentials.';
+        this.errorMessage = getAuthErrorMessage(
+          error,
+          'Login failed. Please check your credentials and try again.'
+        );
       }
     });
   }
 
-  // Helper buttons to quickly test demonstration accounts
+  // Fill the email only; the user must enter the password separately.
   fillDemo(role: 'DOCTOR' | 'PHARMACY' | 'PATIENT'): void {
+    this.password = '';
     switch (role) {
       case 'DOCTOR':
         this.email = 'doctor@smarthospital.local';
-        this.password = 'Doctor@123';
         break;
       case 'PHARMACY':
         this.email = 'pharmacy@smarthospital.local';
-        this.password = 'Pharmacy@123';
         break;
       case 'PATIENT':
         this.email = 'patient@smarthospital.local';
-        this.password = 'Patient@123';
         break;
     }
     this.errorMessage = '';

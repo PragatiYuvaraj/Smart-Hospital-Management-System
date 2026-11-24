@@ -1,3 +1,4 @@
+// Credentials in this test are synthetic fixtures only; never use demo or production account values.
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const env = require('../src/config/env');

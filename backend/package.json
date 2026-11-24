@@ -8,12 +8,18 @@
     "dev": "nodemon server.js",
     "seed": "node src/scripts/seed.js",
     "bootstrap": "node src/scripts/bootstrap.js",
-    "test": "node tests/auth.test.js",
+    "seed:medicines": "node src/scripts/seed-medicines.js",
+    "test": "node tests/run-all.js",
+    "test:seed": "node tests/seed-verification.test.js",
     "test:rbac": "node tests/rbac.test.js",
     "test:registration": "node tests/patient-registration.test.js",
     "test:profile": "node tests/patient-profile.test.js",
     "test:doctors": "node tests/doctor-profile.test.js",
-    "test:assignments": "node tests/assignment.test.js"
+    "test:assignments": "node tests/assignment.test.js",
+    "test:pharmacy": "node tests/pharmacy.test.js",
+    "test:reviews": "node tests/review-time.test.js && node tests/review-workflow.test.js",
+    "test:messaging": "node tests/messaging.test.js",
+    "test:vault": "node tests/vault.test.js"
   },
   "keywords": [
     "mean-stack",
@@ -30,7 +36,9 @@
     "express": "^4.19.2",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.3.2"
+    "mongoose": "^8.3.2",
+    "multer": "^2.5.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

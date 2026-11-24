@@ -13,8 +13,10 @@ const connectDB = async () => {
     console.log(`[MongoDB] Connected successfully to host: ${conn.connection.host}`);
     return true;
   } catch (error) {
-    console.warn(`[MongoDB] Connection warning: Could not connect to MongoDB at ${env.MONGODB_URI}`);
-    console.warn(`[MongoDB] Detail: ${error.message}`);
+    console.warn('[MongoDB] Connection warning: Could not connect to the configured MongoDB deployment.');
+    console.warn(
+      `[MongoDB] Detail: ${error.name}${error.code ? ` (${error.code})` : ''}`
+    );
     console.warn('[MongoDB] Note: Express server will continue running. Please start local MongoDB or provide MONGODB_URI in .env.');
     return false;
   }

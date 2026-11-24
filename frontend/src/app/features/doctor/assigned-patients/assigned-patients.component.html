@@ -1,0 +1,881 @@
+<div class="assigned-patients-container">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Patient Care & Roster</h2>
+        <p class="subtitle">
+          Treating physician patient roster
+          <span *ngIf="doctor"> for <strong>Dr. {{ doctor.name }}</strong> ({{ doctor.department }})</span>
+        </p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/doctor-profile" class="btn btn-secondary">My Profile</a>
+        <a routerLink="/doctor-dashboard" class="btn btn-secondary">Dashboard</a>
+      </div>
+    </div>
+
+    <!-- Duty Doctor Notice Banner -->
+    <div *ngIf="isDutyDoctor" class="notice-banner duty-coverage">
+      <strong>Duty Doctor Active:</strong> You hold cross-coverage permissions. Hospital-wide patient access operations are auditable per clinical protocol.
+    </div>
+
+    <!-- Duty Doctor Tabs (Only shown if user has DUTY_DOCTOR permission) -->
+    <div *ngIf="isDutyDoctor" class="tabs-container">
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === 'assigned'"
+        (click)="switchTab('assigned')"
+      >
+        My Assigned Patients ({{ patients.length }})
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === 'hospital'"
+        (click)="switchTab('hospital')"
+      >
+        Hospital-Wide Directory (Duty Coverage)
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading assigned patients...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <!-- TAB 1: Assigned Patients -->
+    <div *ngIf="!isLoading && !errorMessage && activeTab === 'assigned'">
+      <!-- Search & Filters -->
+      <div class="toolbar">
+        <div class="search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Search by patient name or patient number..."
+          />
+          <button *ngIf="searchTerm" class="clear-btn" (click)="searchTerm = ''; onSearchChange()">✕</button>
+        </div>
+        <span class="patient-count">
+          Showing <strong>{{ filteredPatients.length }}</strong> of {{ patients.length }} assigned patient(s)
+        </span>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="patients.length === 0" class="empty-state">
+        <p class="empty-title">No assigned patients found.</p>
+        <p class="empty-subtitle">You currently have no active treating doctor assignments.</p>
+      </div>
+
+      <!-- Filtered Empty State -->
+      <div *ngIf="patients.length > 0 && filteredPatients.length === 0" class="empty-state">
+        <p class="empty-title">No matching patients.</p>
+        <p class="empty-subtitle">Try adjusting your search criteria.</p>
+      </div>
+
+      <!-- Patients Table -->
+      <div *ngIf="filteredPatients.length > 0" class="table-responsive">
+        <table class="roster-table">
+          <thead>
+            <tr>
+              <th>Patient Number</th>
+              <th>Full Name</th>
+              <th>Status</th>
+              <th>Assignment Start</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let patient of filteredPatients">
+              <td>
+                <span class="patient-badge"><code>{{ patient.patientNumber }}</code></span>
+              </td>
+              <td><strong>{{ patient.name }}</strong></td>
+              <td>
+                <span class="status-badge" [ngClass]="patient.status.toLowerCase()">
+                  {{ patient.status }}
+                </span>
+              </td>
+              <td>{{ patient.assignmentStartDate | date:'mediumDate' }}</td>
+              <td>
+                <button class="btn btn-sm btn-outline" (click)="viewPatientDetail(patient._id)">
+                  View Profile
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Hospital-Wide Patients (Duty Coverage) -->
+    <div *ngIf="activeTab === 'hospital'">
+      <div class="toolbar">
+        <div class="search-box">
+          <input
+            type="text"
+            [(ngModel)]="hospitalSearchTerm"
+            (keyup.enter)="onHospitalSearch()"
+            placeholder="Search hospital-wide directory (press Enter or Search)..."
+          />
+          <button *ngIf="hospitalSearchTerm" class="clear-btn" (click)="hospitalSearchTerm = ''; onHospitalSearch()">✕</button>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="onHospitalSearch()" [disabled]="isLoadingHospital">
+          Search Directory
+        </button>
+      </div>
+
+      <div *ngIf="isLoadingHospital" class="loading-state">
+        <div class="spinner"></div>
+        <p>Searching hospital directory...</p>
+      </div>
+
+      <div *ngIf="hospitalSearchMessage" class="alert alert-error">
+        {{ hospitalSearchMessage }}
+      </div>
+
+      <div *ngIf="!isLoadingHospital && hospitalPatients.length === 0" class="empty-state">
+        <p class="empty-title">No patients found in directory.</p>
+      </div>
+
+      <div *ngIf="!isLoadingHospital && hospitalPatients.length > 0" class="table-responsive">
+        <table class="roster-table">
+          <thead>
+            <tr>
+              <th>Patient Number</th>
+              <th>Full Name</th>
+              <th>Status</th>
+              <th>Duty Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let patient of hospitalPatients">
+              <td>
+                <span class="patient-badge"><code>{{ patient.patientNumber }}</code></span>
+              </td>
+              <td><strong>{{ patient.name }}</strong></td>
+              <td>
+                <span class="status-badge" [ngClass]="patient.status.toLowerCase()">
+                  {{ patient.status }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-primary" (click)="viewPatientDetail(patient._id)">
+                  View (Coverage Access)
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal / Drawer for Patient Detail -->
+  <div *ngIf="selectedPatient || isLoadingDetail || detailErrorMessage" class="modal-backdrop" (click)="closePatientDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Patient Clinical Record</h3>
+        <button class="modal-close-btn" (click)="closePatientDetail()">✕</button>
+      </div>
+
+      <div *ngIf="isLoadingDetail" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading patient profile...</p>
+      </div>
+
+      <div *ngIf="detailErrorMessage" class="alert alert-error">
+        {{ detailErrorMessage }}
+      </div>
+
+      <div *ngIf="selectedPatient" class="modal-body">
+        <table class="details-table">
+          <tbody>
+            <tr>
+              <td class="key">Patient Number:</td>
+              <td class="value"><code>{{ selectedPatient.patientNumber }}</code></td>
+            </tr>
+            <tr>
+              <td class="key">Full Name:</td>
+              <td class="value"><strong>{{ selectedPatient.name }}</strong></td>
+            </tr>
+            <tr>
+              <td class="key">Date of Birth:</td>
+              <td class="value">{{ selectedPatient.dateOfBirth ? (selectedPatient.dateOfBirth | date:'mediumDate':'UTC') : 'Not specified' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Contact Number:</td>
+              <td class="value">{{ selectedPatient.contactNumber || 'None provided' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Residential Address:</td>
+              <td class="value">{{ selectedPatient.address || 'None provided' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Clinical Status:</td>
+              <td class="value">
+                <span class="status-badge" [ngClass]="selectedPatient.status.toLowerCase()">
+                  {{ selectedPatient.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <small class="notice-text">
+          Access to this profile has been validated and recorded in the hospital audit log.
+        </small>
+
+        <section class="medical-history-section">
+          <div class="section-heading">
+            <div>
+              <h4>Medical History</h4>
+              <p>Consultations for this patient, newest first.</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="loadMedicalRecords()"
+              [disabled]="isLoadingMedicalRecords"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div *ngIf="isLoadingMedicalRecords" class="inline-loading" role="status">
+            Loading medical history...
+          </div>
+          <div *ngIf="medicalRecordsErrorMessage" class="alert alert-error" role="alert">
+            {{ medicalRecordsErrorMessage }}
+          </div>
+          <div *ngIf="recordActionErrorMessage" class="alert alert-error" role="alert">
+            {{ recordActionErrorMessage }}
+          </div>
+          <div *ngIf="recordActionSuccessMessage" class="alert alert-success" role="status">
+            {{ recordActionSuccessMessage }}
+          </div>
+          <div
+            *ngIf="!isLoadingMedicalRecords && !medicalRecordsErrorMessage && medicalRecords.length === 0"
+            class="empty-state compact-empty-state"
+          >
+            <p class="empty-title">No previous consultations.</p>
+            <p class="empty-subtitle">Create a consultation below to begin this patient's medical history.</p>
+          </div>
+
+          <article *ngFor="let record of medicalRecords" class="consultation-card">
+            <div class="consultation-card-header">
+              <div>
+                <h5>{{ record.encounterDate | date:'mediumDate' }}</h5>
+                <span class="status-badge" [ngClass]="record.status.toLowerCase()">
+                  {{ record.status }}
+                </span>
+                <span *ngIf="record.status === 'FINALIZED'" class="release-label">
+                  {{ record.isReleased ? 'Released to patient' : 'Not released to patient' }}
+                </span>
+              </div>
+              <div class="record-actions">
+                <button
+                  *ngIf="isOwnDraft(record)"
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  (click)="editDraft(record)"
+                  [disabled]="isSavingConsultation || recordActionBusyId !== null"
+                >
+                  Edit Draft
+                </button>
+                <button
+                  *ngIf="isOwnDraft(record)"
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  (click)="finalizeDraft(record)"
+                  [disabled]="recordActionBusyId !== null"
+                >
+                  {{ recordActionBusyId === record._id ? 'Finalizing...' : 'Finalize' }}
+                </button>
+                <button
+                  *ngIf="record.status === 'FINALIZED'"
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  (click)="togglePatientRelease(record)"
+                  [disabled]="recordActionBusyId !== null"
+                >
+                  {{ recordActionBusyId === record._id
+                    ? 'Updating...'
+                    : (record.isReleased ? 'Retract Release' : 'Release to Patient') }}
+                </button>
+                <button
+                  *ngIf="record.status === 'FINALIZED'"
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  (click)="togglePrescriptionForm(record)"
+                  [disabled]="isSavingPrescription || recordActionBusyId !== null"
+                >
+                  {{ prescriptionRecordId === record._id ? 'Cancel Rx' : 'Create Prescription' }}
+                </button>
+                <button
+                  *ngIf="record.status === 'FINALIZED'"
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  (click)="toggleAmendmentForm(record)"
+                  [disabled]="isSavingAmendment || recordActionBusyId !== null"
+                >
+                  Add Amendment
+                </button>
+              </div>
+            </div>
+
+            <dl class="consultation-summary">
+              <div>
+                <dt>Reason</dt>
+                <dd>{{ record.reason }}</dd>
+              </div>
+              <div>
+                <dt>Diagnosis</dt>
+                <dd>{{ record.diagnosis }}</dd>
+              </div>
+              <div>
+                <dt>Treatment plan</dt>
+                <dd>{{ record.treatmentPlan }}</dd>
+              </div>
+            </dl>
+
+            <section *ngIf="record.amendments.length > 0" class="amendment-history">
+              <h6>Amendment history</h6>
+              <article *ngFor="let amendment of record.amendments" class="amendment-entry">
+                <p>
+                  <strong>{{ amendment.reason }}</strong>
+                  <span class="amendment-meta">
+                    {{ amendment.authorName }} · {{ amendment.createdAt | date:'medium' }}
+                  </span>
+                </p>
+                <p>{{ amendment.changes }}</p>
+              </article>
+            </section>
+
+            <form
+              *ngIf="amendmentRecordId === record._id"
+              #amendmentForm="ngForm"
+              class="amendment-form"
+              (ngSubmit)="submitAmendment(record, amendmentForm)"
+            >
+              <h6>Record an amendment</h6>
+              <label>
+                Reason <span class="required-mark">*</span>
+                <input
+                  type="text"
+                  name="amendmentReason"
+                  [(ngModel)]="amendmentReason"
+                  required
+                  minlength="5"
+                  maxlength="500"
+                  autocomplete="off"
+                />
+              </label>
+              <small *ngIf="amendmentForm.submitted && amendmentReason.trim().length < 5" class="field-error">
+                Enter a reason of at least 5 characters.
+              </small>
+              <label>
+                Changes <span class="required-mark">*</span>
+                <textarea
+                  name="amendmentChanges"
+                  [(ngModel)]="amendmentChanges"
+                  required
+                  rows="3"
+                ></textarea>
+              </label>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-sm" [disabled]="isSavingAmendment">
+                  {{ isSavingAmendment ? 'Saving...' : 'Save Amendment' }}
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="toggleAmendmentForm(record)">
+                  Cancel
+                </button>
+              </div>
+            </form>
+
+            <!-- Prescription Creation Form -->
+            <form
+              *ngIf="prescriptionRecordId === record._id"
+              #rxForm="ngForm"
+              class="prescription-form"
+              (ngSubmit)="submitPrescription(record, rxForm)"
+            >
+              <div class="prescription-form-header">
+                <h6>Create Prescription</h6>
+                <span class="patient-badge">Linked Encounter: {{ record.encounterDate | date:'mediumDate' }}</span>
+              </div>
+
+              <div *ngIf="prescriptionErrorMessage" class="alert alert-error" role="alert">
+                {{ prescriptionErrorMessage }}
+              </div>
+              <div *ngIf="prescriptionSuccessMessage" class="alert alert-success" role="status">
+                {{ prescriptionSuccessMessage }}
+              </div>
+
+              <div *ngIf="isLoadingMedicines" class="inline-loading">
+                Loading medicines catalogue...
+              </div>
+
+              <div *ngFor="let item of prescriptionItems; let i = index" class="rx-item-card">
+                <div class="rx-item-header">
+                  <strong>Medicine #{{ i + 1 }}</strong>
+                  <button
+                    *ngIf="prescriptionItems.length > 1"
+                    type="button"
+                    class="btn btn-outline btn-xs"
+                    (click)="removePrescriptionItem(i)"
+                    title="Remove medicine"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div class="prescription-grid">
+                  <label class="form-field-span-2">
+                    Medicine <span class="required-mark">*</span>
+                    <select [(ngModel)]="item.medicineId" [name]="'medicineId_' + i" required>
+                      <option value="" disabled>-- Select Medicine --</option>
+                      <option *ngFor="let med of availableMedicines" [value]="med._id">
+                        {{ med.name }} {{ med.strength ? '(' + med.strength + ')' : '' }} - {{ med.form }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Dosage <span class="required-mark">*</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="item.dosage"
+                      [name]="'dosage_' + i"
+                      placeholder="e.g. 500mg, 1 tablet"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Frequency <span class="required-mark">*</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="item.frequency"
+                      [name]="'frequency_' + i"
+                      placeholder="e.g. Twice daily, Every 8 hrs"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Duration <span class="required-mark">*</span>
+                    <input
+                      type="text"
+                      [(ngModel)]="item.duration"
+                      [name]="'duration_' + i"
+                      placeholder="e.g. 5 days, 1 month"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Quantity <span class="required-mark">*</span>
+                    <input
+                      type="number"
+                      [(ngModel)]="item.quantity"
+                      [name]="'quantity_' + i"
+                      min="1"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Route
+                    <input
+                      type="text"
+                      [(ngModel)]="item.route"
+                      [name]="'route_' + i"
+                      placeholder="e.g. Oral, Topical"
+                    />
+                  </label>
+
+                  <label class="form-field-span-2">
+                    Patient Instructions
+                    <input
+                      type="text"
+                      [(ngModel)]="item.instructions"
+                      [name]="'instructions_' + i"
+                      placeholder="e.g. Take after food with water"
+                      maxlength="500"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div class="rx-actions-row">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  (click)="addPrescriptionItem()"
+                  [disabled]="isSavingPrescription"
+                >
+                  + Add Another Medicine
+                </button>
+              </div>
+
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-sm"
+                  [disabled]="isSavingPrescription || isLoadingMedicines"
+                >
+                  {{ isSavingPrescription ? 'Submitting to Pharmacy...' : 'Send Prescription to Pharmacy' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  (click)="togglePrescriptionForm(record)"
+                  [disabled]="isSavingPrescription"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </article>
+
+          <div *ngIf="medicalRecordsTotalPages > 1" class="history-pagination">
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              (click)="changeMedicalRecordsPage(medicalRecordsPage - 1)"
+              [disabled]="medicalRecordsPage <= 1 || isLoadingMedicalRecords"
+            >
+              Previous
+            </button>
+            <span>Page {{ medicalRecordsPage }} of {{ medicalRecordsTotalPages }}</span>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              (click)="changeMedicalRecordsPage(medicalRecordsPage + 1)"
+              [disabled]="medicalRecordsPage >= medicalRecordsTotalPages || isLoadingMedicalRecords"
+            >
+              Next
+            </button>
+          </div>
+        </section>
+
+        <section *ngIf="isDoctor" class="medical-history-section">
+          <div class="section-heading">
+            <div>
+              <h4>Review Schedule</h4>
+              <p *ngIf="hospitalTimezone">
+                Review times are shown and entered in {{ hospitalTimezone }}.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="loadReviewSchedules()"
+              [disabled]="isLoadingReviews || !hospitalTimezone"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div *ngIf="isLoadingHospitalTimezone" class="inline-loading" role="status">
+            Loading configured hospital timezone...
+          </div>
+          <div *ngIf="hospitalTimezoneErrorMessage" class="alert alert-error" role="alert">
+            {{ hospitalTimezoneErrorMessage }}
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="loadHospitalTimezone()"
+              [disabled]="isLoadingHospitalTimezone"
+            >
+              Retry
+            </button>
+          </div>
+          <ng-container *ngIf="hospitalTimezone && !hospitalTimezoneErrorMessage">
+            <div *ngIf="isLoadingReviews" class="inline-loading" role="status">
+              Loading scheduled reviews...
+            </div>
+            <div *ngIf="reviewErrorMessage" class="alert alert-error" role="alert">
+              {{ reviewErrorMessage }}
+            </div>
+            <div *ngIf="reviewSuccessMessage" class="alert alert-success" role="status">
+              {{ reviewSuccessMessage }}
+            </div>
+            <div *ngIf="reviewDateValidationMessage" class="alert alert-error" role="alert">
+              {{ reviewDateValidationMessage }}
+            </div>
+
+            <div
+              *ngIf="!isLoadingReviews && !reviewErrorMessage && reviews.length === 0"
+              class="empty-state compact-empty-state"
+            >
+              <p class="empty-title">No scheduled reviews.</p>
+              <p class="empty-subtitle">Schedule a review for this patient below.</p>
+            </div>
+
+            <article
+              *ngFor="let review of reviews"
+              class="consultation-card"
+            >
+              <div class="consultation-card-header">
+                <div>
+                  <h5>{{ formatReviewDate(review.reviewDate) }}</h5>
+                  <span class="status-badge active">Scheduled</span>
+                  <span *ngIf="isReviewOverdue(review)" class="status-badge inactive">Overdue</span>
+                </div>
+                <div class="record-actions">
+                  <button
+                    *ngIf="review.status === 'SCHEDULED'"
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    (click)="startRescheduling(review)"
+                    [disabled]="isReviewActionBusy"
+                  >
+                    Reschedule
+                  </button>
+                  <button
+                    *ngIf="review.status === 'SCHEDULED'"
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    (click)="cancelScheduledReview(review)"
+                    [disabled]="isReviewActionBusy"
+                  >
+                    {{ reviewActionBusyId === review._id ? 'Updating...' : 'Cancel' }}
+                  </button>
+                  <button
+                    *ngIf="review.status === 'SCHEDULED'"
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    (click)="completeScheduledReview(review)"
+                    [disabled]="isReviewActionBusy"
+                  >
+                    {{ reviewActionBusyId === review._id ? 'Updating...' : 'Complete' }}
+                  </button>
+                </div>
+              </div>
+
+              <p *ngIf="review.instructions">
+                {{ review.instructions }}
+              </p>
+
+              <form
+                *ngIf="editingReviewId === review._id"
+                #rescheduleForm="ngForm"
+                class="amendment-form reschedule-form"
+                (ngSubmit)="saveReschedule(review, rescheduleForm)"
+              >
+                <label>
+                  New review date and time <span class="required-mark">*</span>
+                  <input
+                    type="datetime-local"
+                    name="reviewDateTime"
+                    [(ngModel)]="rescheduleDateTime"
+                    [min]="minimumReviewDateTime"
+                    (ngModelChange)="reviewDateValidationMessage = ''"
+                    required
+                  />
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary btn-sm" [disabled]="isReviewActionBusy">
+                    {{ reviewActionBusyId === review._id ? 'Saving...' : 'Save Reschedule' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    (click)="editingReviewId = null; reviewDateValidationMessage = ''"
+                    [disabled]="isReviewActionBusy"
+                  >
+                    Keep Current Time
+                  </button>
+                </div>
+              </form>
+            </article>
+
+            <div *ngIf="reviewsTotalPages > 1" class="history-pagination">
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                (click)="changeReviewsPage(reviewsPage - 1)"
+                [disabled]="reviewsPage <= 1 || isLoadingReviews"
+              >
+                Previous
+              </button>
+              <span>Page {{ reviewsPage }} of {{ reviewsTotalPages }}</span>
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                (click)="changeReviewsPage(reviewsPage + 1)"
+                [disabled]="reviewsPage >= reviewsTotalPages || isLoadingReviews"
+              >
+                Next
+              </button>
+            </div>
+
+            <form
+              #newReviewForm="ngForm"
+              class="amendment-form"
+              (ngSubmit)="scheduleReview(newReviewForm)"
+            >
+              <h6>Schedule a review</h6>
+              <div class="consultation-form-grid">
+                <label>
+                  Review date and time <span class="required-mark">*</span>
+                  <input
+                    type="datetime-local"
+                    name="reviewDateTime"
+                    [(ngModel)]="newReviewDateTime"
+                    [min]="minimumReviewDateTime"
+                    (ngModelChange)="reviewDateValidationMessage = ''"
+                    required
+                  />
+                </label>
+                <label>
+                  Instructions
+                  <textarea
+                    name="instructions"
+                    [(ngModel)]="newReviewInstructions"
+                    rows="2"
+                    maxlength="2000"
+                  ></textarea>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" [disabled]="isReviewActionBusy">
+                  {{ isSavingReview ? 'Scheduling...' : 'Schedule Review' }}
+                </button>
+              </div>
+            </form>
+          </ng-container>
+        </section>
+
+        <section
+          *ngIf="canMessageSelectedPatient"
+          class="medical-history-section"
+          aria-label="Patient-doctor messaging"
+        >
+          <app-messaging-panel [patientId]="selectedPatient._id"></app-messaging-panel>
+        </section>
+        <section
+          *ngIf="isDoctor && selectedPatient && !canMessageSelectedPatient"
+          class="medical-history-section"
+          role="note"
+        >
+          <p>Messaging is available only for patients with your active treating-doctor assignment.</p>
+        </section>
+
+        <section class="consultation-editor">
+          <div class="section-heading">
+            <div>
+              <h4>{{ editingRecordId ? 'Edit Draft Consultation' : 'New Consultation' }}</h4>
+              <p *ngIf="editingRecordId">Only the original author can edit a draft. Encounter date is fixed after creation.</p>
+              <p *ngIf="!editingRecordId">Save a new consultation as a draft before finalizing it.</p>
+            </div>
+          </div>
+          <div *ngIf="consultationErrorMessage" class="alert alert-error" role="alert">
+            {{ consultationErrorMessage }}
+          </div>
+          <div *ngIf="consultationSuccessMessage" class="alert alert-success" role="status">
+            {{ consultationSuccessMessage }}
+          </div>
+
+          <form #consultationFormRef="ngForm" (ngSubmit)="saveConsultation(consultationFormRef)">
+            <div class="consultation-form-grid">
+              <label>
+                Encounter date <span class="required-mark">*</span>
+                <input
+                  type="date"
+                  name="encounterDate"
+                  [(ngModel)]="consultationForm.encounterDate"
+                  required
+                  [disabled]="!!editingRecordId"
+                />
+              </label>
+              <label>
+                Reason <span class="required-mark">*</span>
+                <input
+                  type="text"
+                  name="reason"
+                  [(ngModel)]="consultationForm.reason"
+                  required
+                  maxlength="500"
+                />
+              </label>
+              <label class="form-field-wide">
+                Symptoms <span class="required-mark">*</span>
+                <textarea
+                  name="symptoms"
+                  [(ngModel)]="consultationForm.symptoms"
+                  required
+                  rows="3"
+                ></textarea>
+              </label>
+              <label class="form-field-wide">
+                Observations
+                <textarea
+                  name="observations"
+                  [(ngModel)]="consultationForm.observations"
+                  rows="3"
+                ></textarea>
+              </label>
+              <label class="form-field-wide">
+                Diagnosis <span class="required-mark">*</span>
+                <textarea
+                  name="diagnosis"
+                  [(ngModel)]="consultationForm.diagnosis"
+                  required
+                  rows="3"
+                ></textarea>
+              </label>
+              <label class="form-field-wide">
+                Internal clinical notes
+                <textarea
+                  name="notes"
+                  [(ngModel)]="consultationForm.notes"
+                  rows="3"
+                  aria-describedby="clinical-notes-help"
+                ></textarea>
+                <small id="clinical-notes-help" class="field-hint">
+                  Internal notes are restricted to doctor access and are not shown in patient-facing views.
+                </small>
+              </label>
+              <label class="form-field-wide">
+                Treatment plan <span class="required-mark">*</span>
+                <textarea
+                  name="treatmentPlan"
+                  [(ngModel)]="consultationForm.treatmentPlan"
+                  required
+                  rows="3"
+                ></textarea>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="isSavingConsultation">
+                {{ isSavingConsultation
+                  ? 'Saving...'
+                  : (editingRecordId ? 'Save Draft Changes' : 'Save as Draft') }}
+              </button>
+              <button
+                *ngIf="editingRecordId"
+                type="button"
+                class="btn btn-secondary"
+                (click)="cancelDraftEdit()"
+                [disabled]="isSavingConsultation"
+              >
+                Cancel Edit
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closePatientDetail()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

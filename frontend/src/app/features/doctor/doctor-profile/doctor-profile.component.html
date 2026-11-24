@@ -1,0 +1,91 @@
+<div class="doctor-profile-container">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Doctor Professional Profile</h2>
+        <p class="subtitle">Official clinical credentials and registration reference</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/doctor-patients" class="btn btn-primary">View Assigned Patients</a>
+        <a routerLink="/doctor-dashboard" class="btn btn-secondary">Dashboard</a>
+      </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading doctor profile...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="!isLoading && doctor" class="profile-content">
+      <section class="section">
+        <h3 class="section-title">Clinical Identification</h3>
+        <table class="details-table">
+          <tbody>
+            <tr>
+              <td class="key">Doctor Number:</td>
+              <td class="value">
+                <span class="doctor-number-badge">
+                  <code>{{ doctor.doctorNumber }}</code>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="key">Full Name:</td>
+              <td class="value"><strong>Dr. {{ doctor.name }}</strong></td>
+            </tr>
+            <tr>
+              <td class="key">Account Email:</td>
+              <td class="value">{{ user?.email || 'N/A' }}</td>
+            </tr>
+            <tr>
+              <td class="key">Primary Role:</td>
+              <td class="value">
+                <span class="role-pill">DOCTOR</span>
+                <span *ngIf="authService.hasPermission('DUTY_DOCTOR')" class="duty-badge">
+                  DUTY_DOCTOR (Cross-Coverage Authorized)
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="key">Account Status:</td>
+              <td class="value">
+                <span class="status-badge" [ngClass]="doctor.status.toLowerCase()">
+                  {{ doctor.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h3 class="section-title">Professional Credentials & Department</h3>
+        <table class="details-table">
+          <tbody>
+            <tr>
+              <td class="key">Medical Specialization:</td>
+              <td class="value"><strong>{{ doctor.specialization }}</strong></td>
+            </tr>
+            <tr>
+              <td class="key">Hospital Department:</td>
+              <td class="value">{{ doctor.department }}</td>
+            </tr>
+            <tr>
+              <td class="key">Registration Reference:</td>
+              <td class="value"><code>{{ doctor.registrationReference }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <small class="notice-text">
+          * Professional credentials and identity details are managed by hospital administration and remain read-only.
+        </small>
+      </section>
+    </div>
+  </div>
+</div>

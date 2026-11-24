@@ -1,0 +1,153 @@
+<section class="messaging-panel" aria-labelledby="messaging-title">
+  <div class="messaging-heading">
+    <div>
+      <h4 id="messaging-title">{{ conversationHeading }}</h4>
+      <p class="messaging-disclaimer" role="note">
+        Messages are for non-emergency communication only. Do not use this service for medical emergencies. Contact emergency services or visit the hospital immediately if urgent assistance is required.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="messaging-button secondary"
+      (click)="openConversation()"
+      [disabled]="isOpeningConversation || isLoadingMessages || isSendingMessage"
+    >
+      {{ isOpeningConversation ? 'Opening...' : 'Refresh' }}
+    </button>
+  </div>
+
+  <div *ngIf="conversationErrorMessage" class="messaging-alert error" role="alert">
+    <p>{{ conversationErrorMessage }}</p>
+    <button
+      type="button"
+      class="messaging-button secondary"
+      (click)="openConversation()"
+      [disabled]="isOpeningConversation"
+    >
+      Retry
+    </button>
+  </div>
+
+  <div *ngIf="isOpeningConversation" class="messaging-state" role="status" aria-live="polite">
+    Opening your secure conversation...
+  </div>
+
+  <ng-container *ngIf="conversation && !isOpeningConversation">
+    <div *ngIf="messagesErrorMessage" class="messaging-alert error" role="alert">
+      <p>{{ messagesErrorMessage }}</p>
+      <button
+        type="button"
+        class="messaging-button secondary"
+        (click)="loadInitialMessages(conversation._id)"
+        [disabled]="isLoadingMessages"
+      >
+        Retry
+      </button>
+    </div>
+
+    <div *ngIf="isLoadingMessages && messages.length === 0" class="messaging-state" role="status">
+      Loading conversation messages...
+    </div>
+
+    <button
+      *ngIf="canLoadOlderMessages"
+      type="button"
+      class="messaging-button secondary load-older"
+      (click)="loadOlderMessages()"
+    >
+      {{ isLoadingOlderMessages ? 'Loading older messages...' : 'Load older messages' }}
+    </button>
+
+    <div
+      *ngIf="isLoadingOlderMessages"
+      class="messaging-state compact"
+      role="status"
+      aria-live="polite"
+    >
+      Loading older messages...
+    </div>
+
+    <div
+      *ngIf="!isLoadingMessages && messages.length === 0 && !messagesErrorMessage"
+      class="messaging-empty"
+    >
+      <strong>No messages yet</strong>
+      <p>Start the conversation by sending a message below.</p>
+    </div>
+
+    <ol
+      *ngIf="messages.length > 0"
+      #messageList
+      class="message-list"
+      aria-label="Conversation messages"
+    >
+      <li
+        *ngFor="let message of messages"
+        class="message-row"
+        [class.own-message]="isOwnMessage(message)"
+      >
+        <article class="message-bubble">
+          <p class="message-body">{{ message.body }}</p>
+          <div class="message-meta">
+            <time [attr.datetime]="message.createdAt">
+              {{ message.createdAt | date:'mediumDate' }} ·
+              {{ message.createdAt | date:'shortTime' }}
+            </time>
+            <span class="message-status">{{ getMessageStatus(message) }}</span>
+          </div>
+          <button
+            *ngIf="!isOwnMessage(message) && message.status === 'SENT' && !message.readAt"
+            type="button"
+            class="mark-read-button"
+            (click)="markAsRead(message)"
+            [disabled]="readActionBusyId !== null"
+          >
+            {{ readActionBusyId === message._id ? 'Updating...' : 'Mark as read' }}
+          </button>
+        </article>
+      </li>
+    </ol>
+
+    <div *ngIf="isLoadingMessages && messages.length > 0" class="messaging-state compact" role="status">
+      Refreshing messages...
+    </div>
+
+    <div *ngIf="actionErrorMessage" class="messaging-alert error" role="alert">
+      {{ actionErrorMessage }}
+    </div>
+    <div *ngIf="actionSuccessMessage" class="messaging-alert success" role="status">
+      {{ actionSuccessMessage }}
+    </div>
+
+    <form
+      *ngIf="conversation.status === 'ACTIVE'"
+      class="message-composer"
+      (ngSubmit)="sendMessage()"
+    >
+      <label for="message-body">Write a message</label>
+      <textarea
+        id="message-body"
+        name="messageBody"
+        [(ngModel)]="draft"
+        rows="3"
+        maxlength="4000"
+        [disabled]="isSendingMessage"
+        placeholder="Messages are not for emergencies."
+      ></textarea>
+      <div class="composer-footer">
+        <span>{{ draft.length }}/4000 characters</span>
+        <button
+          type="submit"
+          class="messaging-button primary"
+          [disabled]="isSendingMessage || !draft.trim() || draft.length > 4000"
+        >
+          {{ isSendingMessage ? 'Sending...' : 'Send message' }}
+        </button>
+      </div>
+    </form>
+
+    <div *ngIf="conversation.status !== 'ACTIVE'" class="messaging-alert error" role="status">
+      This conversation is closed and cannot receive new messages.
+    </div>
+  </ng-container>
+</section>

@@ -3,16 +3,27 @@
 const AuditLog = require('../models/AuditLog');
 
 const recordAudit = async (
-  { actorId, action, resourceType, resourceId, accessType },
-  session
-) => {
-  const audit = new AuditLog({
+  {
     actorId,
+    actorType = 'USER',
     action,
     resourceType,
     resourceId,
-    outcome: 'SUCCESS',
-    ...(accessType ? { accessContext: { accessType } } : {})
+    accessType,
+    outcome = 'SUCCESS',
+    ipAddress
+  },
+  session
+) => {
+  const audit = new AuditLog({
+    actorType,
+    ...(actorId ? { actorId } : {}),
+    action,
+    resourceType,
+    resourceId,
+    outcome,
+    ...(accessType ? { accessContext: { accessType } } : {}),
+    ...(ipAddress ? { ipAddress } : {})
   });
 
   try {

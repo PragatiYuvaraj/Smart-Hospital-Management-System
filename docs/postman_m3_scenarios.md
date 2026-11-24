@@ -4,7 +4,7 @@
 > Import the scenarios below into Postman, set your `{{base_url}}` to `http://localhost:5000`, and run them in order.
 
 > [!IMPORTANT]
-> Never commit real tokens, passwords, or the contents of your `.env` file. The examples below use placeholder values.
+> Never commit real tokens, passwords, or the contents of your `.env` file. Set `test_password` to a unique, non-production fixture value in Postman; never use a demo-account or production password.
 
 ---
 
@@ -14,6 +14,7 @@
 |---------------|---------------------------------------|
 | `base_url`    | `http://localhost:5000`               |
 | `admin_token` | _(set after Step 1 login)_            |
+| `test_password` | _(set locally to a non-production test value)_ |
 | `doctor_id`   | _(set after Step 3 create doctor)_    |
 | `pharmacy_id` | _(set after Step 4 create pharmacy)_  |
 | `patient_id`  | _(set after Step 5 register patient)_ |
@@ -55,7 +56,7 @@ Body:
 {
   "name": "Dr. Sarah Chen",
   "email": "sarah.chen@hospital.local",
-  "password": "Doctor@2024",
+  "password": "{{test_password}}",
   "role": "DOCTOR",
   "permissions": ["DUTY_DOCTOR"]
 }
@@ -78,7 +79,7 @@ Body:
 {
   "name": "MedPlus Pharmacy",
   "email": "medplus@hospital.local",
-  "password": "Pharma@2024",
+  "password": "{{test_password}}",
   "role": "PHARMACY"
 }
 Expected: 201 Created
@@ -97,13 +98,19 @@ Body:
 {
   "name": "Alice Patient",
   "email": "alice@hospital.local",
-  "password": "Patient@2024",
-  "role": "DOCTOR"
+  "password": "{{test_password}}",
+  "dateOfBirth": "1990-04-12",
+  "role": "DOCTOR",
+  "permissions": ["DUTY_DOCTOR"],
+  "userId": "client-supplied-value-is-ignored",
+  "patientNumber": "client-supplied-value-is-ignored"
 }
 Expected: 201 Created
 Check: data.user.role === "PATIENT"  ← server ignores supplied role
 Check: data.user.permissions.length === 0
+Check: data.user does NOT contain "passwordHash"
 Action: Save data.user._id to {{patient_id}}
+Note: The backend also creates the linked Patient profile with a server-generated patientNumber.
 ```
 
 ---
@@ -113,7 +120,7 @@ Action: Save data.user._id to {{patient_id}}
 ```
 POST {{base_url}}/api/users
 Header: Authorization: Bearer {{admin_token}}
-Body: { "name": "...", "email": "sarah.chen@hospital.local", "password": "...", "role": "DOCTOR" }
+Body: { "name": "...", "email": "sarah.chen@hospital.local", "password": "{{test_password}}", "role": "DOCTOR" }
 Expected: 409 Conflict
 Check: success === false
 ```
@@ -125,7 +132,7 @@ Check: success === false
 ```
 POST {{base_url}}/api/users
 (No Authorization header)
-Body: { "name": "...", "email": "...", "password": "...", "role": "DOCTOR" }
+Body: { "name": "...", "email": "...", "password": "{{test_password}}", "role": "DOCTOR" }
 Expected: 401 Unauthorized
 Check: success === false
 ```
@@ -243,7 +250,7 @@ Check: data.user.status === "INACTIVE"
 
 ```
 POST {{base_url}}/api/auth/login
-Body: { "email": "sarah.chen@hospital.local", "password": "Doctor@2024" }
+Body: { "email": "sarah.chen@hospital.local", "password": "{{test_password}}" }
 Expected: 401 Unauthorized
 Check: success === false, message mentions inactive or account
 ```

@@ -1,5 +1,6 @@
 'use strict';
 
+// Credentials in this test are synthetic fixtures only; never use demo or production account values.
 const assert = require('assert');
 const mongoose = require('mongoose');
 const User = require('../src/models/User');

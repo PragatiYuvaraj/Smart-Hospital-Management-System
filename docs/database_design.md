@@ -303,6 +303,7 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 | frequency | String | Frequency of use |
 | duration | String | Treatment duration |
 | quantity | Number | Prescribed quantity |
+| dispensedQuantity | Number | Cumulative quantity dispensed; cannot exceed quantity |
 | instructions | String | Additional instructions |
 
 **Suggested Prescription Statuses:**
@@ -315,7 +316,9 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 **Business Rules:**
 
 - Each prescription must be linked to a patient and prescribing doctor.
+- Each prescription must reference a valid consultation record.
 - Prescription creation must not reduce medicine stock.
+- Cumulative dispensed quantities must not exceed the prescribed quantities.
 - Prescription changes after finalization must be handled through cancellation/reissue or auditable amendments.
 - Pharmacy users may access prescriptions for dispensing but not unrelated clinical notes.
 
@@ -330,10 +333,12 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 | Field | Data Type | Description |
 |---|---|---|
 | _id | ObjectId | Medicine identifier |
+| identifier | String | Unique catalogue identifier |
 | name | String | Medicine name |
 | genericName | String | Generic medicine name |
 | strength | String | Medicine strength |
 | form | String | Tablet, capsule, syrup, etc. |
+| category | String | Medicine category |
 | manufacturer | String | Manufacturer name |
 | reorderLevel | Number | Minimum desired stock level |
 | active | Boolean | Catalogue availability |
@@ -402,6 +407,7 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 
 - Stock receipt increases available quantity.
 - Dispensing decreases available quantity.
+- Transaction quantity is a positive whole number; transaction type determines the direction.
 - Every dispensing operation must create a transaction.
 - The actor must be an authenticated pharmacy user.
 - Negative stock is prohibited.
@@ -423,18 +429,24 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 | reviewDate | Date | Scheduled review date and time |
 | instructions | String | Review instructions |
 | status | String | SCHEDULED, COMPLETED or CANCELLED |
+| reminderAt | Date | Two-calendar-day reminder time in the configured hospital timezone |
 | reminderStatus | String | Reminder processing status |
+| reminderGeneration | Number | Schedule revision used to deduplicate reminders across reschedules |
 | createdAt | Date | Creation timestamp |
 | updatedAt | Date | Last update timestamp |
 
 **Business Rules:**
 
 - Reviews must be associated with a patient and responsible doctor.
+- `reviewDate` request values must be ISO 8601 date-times with an explicit `Z` or `±HH:mm` offset, for example `2030-04-15T10:00:00+05:30`. Seconds may be omitted and fractional seconds may contain one to three digits; date-only and offset-free local date-times are rejected.
+- `HOSPITAL_TIMEZONE` defaults to `Asia/Kolkata`. The explicit offset identifies the review instant, while reminder calculation uses the configured timezone.
+- The doctor UI reads the configured timezone from `GET /api/health`, interprets `datetime-local` input as hospital wall time, and sends an ISO date-time with the calculated offset. Nonexistent wall times during daylight-saving gaps are rejected; repeated times use the earlier instant.
 - Reminder time must be calculated as two calendar days before the review using the configured hospital timezone.
 - Rescheduling must update pending reminders.
 - Cancellation must cancel pending reminders.
 - Reminder delivery must be idempotent.
-- Doctors may view upcoming and overdue reviews for authorized patients.
+- `GET /api/reviews/upcoming` returns every `SCHEDULED` review, including past-due ones. The frontend distinguishes overdue reviews by comparing `reviewDate` with the current instant; the review remains scheduled until completed or cancelled.
+- Doctors may optionally filter `GET /api/reviews/upcoming` by `patientId`; the active treating assignment or `DUTY_DOCTOR` authorization is still required. Patient requests remain scoped to their own profile and do not apply this filter.
 
 ### 4.11 Notifications Collection
 
@@ -489,9 +501,12 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 
 **Business Rules:**
 
-- A conversation must be associated with an authorized patient–doctor relationship.
-- Only authorized participants may access the conversation.
-- Conversation history must be retained.
+- A unique compound index on `{ patientId, doctorId }` prevents duplicate conversations for the same pair.
+- Patients can access conversations for their own patient profile, including history with a previous treating doctor.
+- Doctors can access a conversation only while they have an active `TREATING` assignment for its patient. `DUTY_DOCTOR` does not grant messaging access.
+- After reassignment, the previous doctor loses access and the new treating doctor gets a separate conversation; history is not copied.
+- Only authenticated `PATIENT` and `DOCTOR` roles may use messaging. Pharmacy is denied.
+- Conversation history must be retained. No conversation deletion or close endpoint is part of the MVP.
 - Messaging is non-emergency communication.
 
 ### 4.13 Messages Collection
@@ -506,55 +521,59 @@ Only records that are both `FINALIZED` and explicitly released may appear on the
 |---|---|---|
 | _id | ObjectId | Message identifier |
 | conversationId | ObjectId | Reference to conversations |
-| senderId | ObjectId | Reference to users |
-| body | String | Message content |
+| senderId | ObjectId | Authenticated sender's user reference |
+| recipientId | ObjectId | Other participant's user reference, derived by the backend |
+| body | String | Trimmed plain-text content, 1–4,000 characters |
 | createdAt | Date | Message timestamp |
-| readAt | Date | Read timestamp, if applicable |
+| readAt | Date | Read timestamp, null until the recipient reads it |
 | status | String | SENT or READ |
 
 **Business Rules:**
 
 - Every message must belong to a valid conversation.
 - Sender identity must be derived from the authenticated user.
-- Only conversation participants may access messages.
-- Messages must retain sender and timestamp information.
+- Recipient identity must be derived from the other conversation participant.
+- Only conversation participants may access messages; doctors must still have an active treating assignment.
+- Only the recipient may mark a message as read. Repeated read requests are idempotent.
+- Messages are immutable through the MVP API.
+- Message history is paginated in chronological order and indexed by conversation and creation time.
 - The interface must display the mandatory non-emergency notice.
+- Audit `CONVERSATION_CREATED`, `CONVERSATION_ACCESSED`, `CONVERSATIONS_ACCESSED`, `MESSAGES_ACCESSED`, `MESSAGE_SENT`, `MESSAGE_READ`, and denied access as `MESSAGING_ACCESS_DENIED`. Record actor, outcome, and IP where available; never record message bodies.
+- MVP excludes group conversations, edits/deletes, attachments, emergency messaging, video, WebSockets, and real-time presence.
 
 ### 4.14 Document Vault Collection
 
 **Collection:** `documentVault`
 
-**Purpose:** Stores metadata for private hospital and doctor documents.
+**Purpose:** Stores metadata for private documents uploaded to an individual doctor's vault.
 
-Actual files are stored in private backend storage, not directly inside MongoDB or public static folders.
+Actual files are stored outside MongoDB in private backend storage, not in public static folders.
 
 **Fields:**
 
 | Field | Data Type | Description |
 |---|---|---|
 | _id | ObjectId | Document identifier |
-| category | String | Document category |
-| title | String | Document title |
-| issuingAuthority | String | Optional issuing authority |
-| referenceNumber | String | Optional reference number |
-| issueDate | Date | Optional issue date |
-| expiryDate | Date | Optional expiry date |
-| storageKey | String | Generated private storage identifier |
-| originalFilename | String | Original filename for display |
-| mimeType | String | Validated file type |
-| fileSize | Number | File size in bytes |
-| uploadedBy | ObjectId | Reference to users |
+| ownerDoctorId | ObjectId | Owner doctor profile; immutable |
+| uploadedBy | ObjectId | Authenticated uploader user; immutable |
+| originalFilename | String | Validated display filename, not a storage path |
+| storageKey | String | Generated 64-character random key; excluded from normal queries and API responses |
+| mimeType | String | Signature-validated `application/pdf`, `image/png`, or `image/jpeg` |
+| fileSize | Number | Validated file size in bytes, maximum 5 MiB |
 | uploadedAt | Date | Upload timestamp |
 | status | String | ACTIVE or DELETED |
+| createdAt | Date | Metadata creation timestamp |
+| updatedAt | Date | Last metadata update timestamp |
 
 **Business Rules:**
 
-- Only authorized doctor accounts with vault permission may list, upload or download documents.
-- Patients and pharmacy users must be denied access.
-- Files must be stored outside public static directories.
-- Storage keys must be generated by the application.
-- Every list, upload, download and deletion operation must be audited.
-- Actual government certificates must not be used in the internship demonstration.
+- Every list, upload, download, and delete request requires an authenticated `DOCTOR` account, `VAULT_ACCESS`, and an active doctor profile. Patients, pharmacy users, and doctors without permission are denied.
+- Documents are private to the doctor who uploaded them; `ownerDoctorId` is checked on every list, download, and delete.
+- The API exposes neither `storageKey` nor filesystem paths. Uploads require exactly one `file` multipart field; extension, MIME type, and file signature must agree.
+- `VAULT_STORAGE_PATH` defaults to `backend/uploads/vault`; relative paths resolve from the backend directory. Configure private storage outside public/static directories. Files are not encrypted at rest by the application.
+- Upload metadata and its audit event are committed together in a MongoDB transaction. The filesystem is not part of that transaction; staged/final files are cleaned up after a verified rollback. If the transaction outcome cannot be verified, the file is retained rather than risk metadata pointing to a missing file; this may require manual orphan reconciliation. A failed cleanup is surfaced and logged without a path.
+- Soft deletion changes the metadata status to `DELETED` and prevents listing/download through the API. It does not erase the file; a separate retention/secure-erasure procedure is required.
+- Audit actions include `VAULT_DOCUMENTS_LISTED`, `VAULT_DOCUMENT_UPLOADED`, `VAULT_DOCUMENT_DOWNLOADED`, `VAULT_DOCUMENT_DELETED`, operation-failure events, and `VAULT_ACCESS_DENIED`. Audits include actor, outcome and IP where available, but not file contents, storage keys, or paths.
 
 ### 4.15 Audit Logs Collection
 
@@ -567,7 +586,8 @@ Actual files are stored in private backend storage, not directly inside MongoDB 
 | Field | Data Type | Description |
 |---|---|---|
 | _id | ObjectId | Audit record identifier |
-| actorId | ObjectId | Authenticated user who performed the action |
+| actorType | String | USER or SYSTEM |
+| actorId | ObjectId | Authenticated user for USER events; omitted for SYSTEM events |
 | action | String | Action performed |
 | resourceType | String | Type of affected resource |
 | resourceId | ObjectId | Identifier of affected resource |
@@ -593,7 +613,7 @@ Actual files are stored in private backend storage, not directly inside MongoDB 
 
 **Business Rules:**
 
-- Sensitive operations must be attributable to an authenticated user.
+- User operations must be attributable to an authenticated user; background-job events must identify SYSTEM as the actor.
 - Audit logs must not contain passwords, JWT tokens or unnecessary clinical content.
 - Audit records should not be silently modified or deleted through ordinary application operations.
 
@@ -684,9 +704,14 @@ Indexes improve query performance and help enforce uniqueness.
 | reviewSchedules | status, reviewDate | Compound |
 | notifications | status, scheduledAt | Compound |
 | notifications | deduplicationKey | Unique |
-| conversations | patientId, doctorId | Compound |
-| messages | conversationId, createdAt | Compound |
-| documentVault | category, status | Compound |
+| conversations | patientId, doctorId | Unique compound |
+| conversations | patientId, updatedAt | Compound |
+| conversations | doctorId, updatedAt | Compound |
+| messages | conversationId, createdAt, _id | Compound |
+| messages | recipientId, readAt, createdAt | Compound |
+| messages | senderId, createdAt | Compound |
+| documentVault | ownerDoctorId, status, uploadedAt, _id | Compound, descending upload date |
+| documentVault | storageKey | Unique |
 | auditLogs | resourceType, resourceId, timestamp | Compound |
 | auditLogs | actorId, timestamp | Compound |
 

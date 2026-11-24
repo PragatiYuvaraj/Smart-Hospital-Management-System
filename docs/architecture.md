@@ -431,24 +431,28 @@ frontend/
 
 ### Module 7: Patient–Doctor Messaging
 
-- Conversation creation.
-- Message sending and receiving.
-- Timestamps.
-- Read status.
-- Access restrictions.
-- Non-emergency disclaimer.
+- Messaging is one-to-one between a patient and their active treating doctor. Patients identify themselves from authentication; doctors must provide a patient ID and have an active `TREATING` assignment.
+- `DUTY_DOCTOR` permission does not grant messaging access. Pharmacy users are denied.
+- Each patient-doctor pair has one conversation. On reassignment, the patient retains their old history, the previous doctor loses access, and the newly assigned doctor receives a separate conversation.
+- Messages derive sender and recipient from the authenticated user and conversation participants. They are immutable through the MVP API; only the recipient can mark a message as read.
+- Conversation and message history are paginated and returned in chronological order. Message bodies are limited to 4,000 characters.
+- The UI must display a non-emergency disclaimer.
 
 Messaging will use REST-based asynchronous communication. WebSocket functionality and real-time presence are not required.
 
+The API provides `POST /api/conversations`, `GET /api/conversations`, `GET /api/conversations/:id/messages`, `POST /api/conversations/:id/messages`, and `PATCH /api/conversations/:id/messages/:messageId/read`. Conversation creation, message sending, and read-state changes commit with their audit records in a MongoDB transaction; these mutations fail closed unless MongoDB is a replica set or sharded deployment. Sensitive list/history access is audited before its response is returned. Audit actions include `CONVERSATION_CREATED`, `CONVERSATION_ACCESSED`, `CONVERSATIONS_ACCESSED`, `MESSAGES_ACCESSED`, `MESSAGE_SENT`, `MESSAGE_READ`, and `MESSAGING_ACCESS_DENIED`. Audit events include actor, outcome and IP attribution but never message bodies.
+
+MVP limitations: no group conversations, message edits/deletes, attachments, emergency messaging, video, WebSockets, or real-time presence.
+
 ### Module 8: Secure Document Vault
 
-- Document metadata management.
-- Private file uploads.
-- Authorized document listing.
-- Authenticated document downloads.
-- Audit logging.
-
-Vault files must remain outside public static folders.
+- `POST /api/vault/documents` accepts one multipart field named `file`; uploads are limited to 5 MiB and PDF, PNG, or JPEG content whose signature, MIME type, and extension agree.
+- `GET /api/vault/documents?page=&limit=` lists only active documents uploaded by the authenticated doctor. `GET /api/vault/documents/:id/download` streams an owned file, and `DELETE /api/vault/documents/:id` soft-deletes its metadata.
+- Every endpoint requires an authenticated `DOCTOR` user with `VAULT_ACCESS` and an active doctor profile. Patient and pharmacy users are denied; one doctor cannot access another doctor's documents.
+- Storage keys are server-generated and private. The API returns no storage key or filesystem path. Files are stored outside public/static directories and are never served through Express static middleware.
+- Upload metadata and its audit event use a MongoDB transaction. Upload files are staged and removed after a verified rollback; filesystem writes themselves do not participate in the database transaction. If a transaction's final outcome cannot be verified, the file is retained rather than risk a database record pointing to a missing file. Upload and soft-delete mutations fail closed unless MongoDB transactions are available.
+- List, upload, download, delete, and authenticated denials are audited with actor, outcome, and IP where available. Audit events do not contain file contents, storage keys, or paths.
+- `VAULT_STORAGE_PATH` defaults to `backend/uploads/vault`; relative paths resolve from the backend directory. Configure a private persistent volume outside all public directories in production. The application does not encrypt files at rest. Soft deletion prevents further API access but does not physically erase the file; storage retention and secure erasure require an operational policy.
 
 ### Module 9: Dashboards
 
@@ -520,13 +524,13 @@ Prescription creation alone must never reduce stock.
 
 ### Workflow E: Secure Document Vault
 
-1. Authorized doctor authenticates.
-2. Doctor requests the document list.
-3. Backend verifies vault permission.
-4. Doctor requests a document download.
-5. Backend verifies access again.
-6. The document is securely streamed.
-7. The access event is recorded in the audit log.
+1. An authenticated doctor with `VAULT_ACCESS` requests the document list.
+2. The backend verifies the active doctor profile and returns only that doctor's active metadata.
+3. The doctor uploads one supported file; the backend checks size, filename, signature, MIME type, and extension.
+4. The backend writes a server-named file to private staging, then persists metadata and the audit event in a transaction.
+5. On verified metadata/audit rollback, the staged or final file is removed. If transaction outcome verification fails, the private file is retained for safe reconciliation; cleanup failures are surfaced and logged without recording a path.
+6. For download, the backend rechecks owner and active status before opening and streaming the private file with no-store and nosniff headers.
+7. Deletion changes metadata to `DELETED`; the stored file remains for separately managed retention/erasure.
 
 ### Workflow F: Patient–Doctor Messaging
 
@@ -598,6 +602,8 @@ A unique deduplication key must prevent duplicate notifications.
 
 A development-only test mechanism may be provided to demonstrate reminder processing without waiting two days. It must not be exposed as an unrestricted production endpoint.
 
+Review creation, rescheduling, cancellation, completion, reminder delivery, and notification-read state changes must commit atomically with their audit records. These operations require a MongoDB replica set or sharded deployment; they fail closed on standalone MongoDB. Reminder delivery updates the notification and review state in the same transaction so failures remain eligible for retry. The cron job starts once from the backend entry point and is disabled in the test environment.
+
 ## 11. API Architecture
 
 The backend will expose REST APIs under `/api`.
@@ -607,20 +613,29 @@ The backend will expose REST APIs under `/api`.
 | Authentication | `/api/auth/login` | User login |
 | Authentication | `/api/auth/register` | Patient registration |
 | Authentication | `/api/auth/me` | Current user |
-| Patients | `/api/patients` | Patient listing |
+| Patients | `GET /api/patients` | List records visible to the patient, assigned doctor, or duty doctor |
+| Patients | `GET /api/patients/:id` | Retrieve an authorized patient profile |
 | Assignments | `/api/assignments` | Create assignment |
 | Medical History | `/api/patients/:id/medical-records` | Patient history |
 | Medical History | `/api/medical-records` | Create consultation |
-| Prescriptions | `/api/prescriptions` | Create prescription |
-| Reviews | `/api/reviews` | Schedule review |
+| Prescriptions | `GET /api/prescriptions/pending` | Pharmacy dispensing queue |
+| Prescriptions | `POST /api/prescriptions` | Create prescription linked to a consultation (deferred; consultation API/model is not implemented) |
+| Reviews | `POST /api/reviews`, `GET /api/reviews/upcoming` | Schedule and list reviews; doctors may optionally filter upcoming results by an authorized `patientId` |
 | Notifications | `/api/notifications/my` | User notifications |
-| Medicines | `/api/medicines` | Medicine catalogue |
-| Dispensing | `/api/dispensing` | Record dispensing |
-| Inventory | `/api/stock/receipts` | Record received stock |
-| Messaging | `/api/conversations` | List conversations |
+| Medicines | `GET /api/medicines` | Search medicine catalogue |
+| Medicines | `GET /api/medicines/availability` | View batch expiry and usable stock |
+| Dispensing | `POST /api/dispensing` | Dispense a pending/partially dispensed prescription |
+| Inventory | `POST /api/stock/receipts` | Record received stock |
+| Messaging | `POST /api/conversations` | Create or retrieve the authenticated participant's conversation |
+| Messaging | `GET /api/conversations?page=&limit=` | List only the authenticated patient's or currently assigned doctor's conversations |
+| Messaging | `GET /api/conversations/:id/messages?page=&limit=` | Retrieve authorized, chronological message history |
+| Messaging | `POST /api/conversations/:id/messages` | Send a message; sender and recipient are server-derived |
+| Messaging | `PATCH /api/conversations/:id/messages/:messageId/read` | Mark a message read as its recipient |
 | Vault | `/api/vault/documents` | List and upload documents |
 
 All endpoints must validate requests, apply authorization and return consistent JSON responses.
+
+The pharmacy catalogue, availability, queue, receipt and dispensing endpoints require an authenticated `PHARMACY` user. Inventory mutations require MongoDB replica-set or sharded transactions; they fail closed on standalone deployments. Prescription creation remains unavailable until consultation records can be created and validated. Medicine catalogue records must be provisioned outside these read-only catalogue endpoints.
 
 ## 12. API Response Format
 
@@ -731,6 +746,8 @@ VAULT_STORAGE_PATH=uploads/vault
 ```
 
 Actual secrets must never be committed to GitHub.
+
+The vault storage path must resolve outside Express-served/public directories. Relative paths resolve from the backend directory. Use a private persistent volume with appropriate operating-system permissions; application-level encryption at rest is not implemented.
 
 The frontend and backend will run as separate development applications and communicate through the configured API URL.
 

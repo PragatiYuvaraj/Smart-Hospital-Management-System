@@ -17,6 +17,7 @@
 'use strict';
 
 const User = require('../models/User');
+const { recordAudit } = require('./audit.service');
 
 // ── Permission constants ────────────────────────────────────────────────────
 
@@ -34,6 +35,13 @@ const GRANTABLE_PERMISSIONS = ['DUTY_DOCTOR', 'VAULT_ACCESS'];
 const CLINICAL_PERMISSIONS = ['MANAGE_USERS', 'DUTY_DOCTOR', 'VAULT_ACCESS'];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Escapes user-supplied regex metacharacters to prevent ReDoS and unintentional pattern matching.
+ */
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
  * Build a consistent AppError object that the Express error handler understands.
@@ -138,6 +146,14 @@ async function createStaffAccount(payload, requestingUserId) {
 
   await user.save();
 
+  await recordAudit({
+    actorId: requestingUserId,
+    action: 'STAFF_ACCOUNT_CREATED',
+    resourceType: 'User',
+    resourceId: user._id,
+    accessType: 'MANAGEMENT'
+  });
+
   return user.toJSON(); // passwordHash stripped by toJSON transform
 }
 
@@ -162,7 +178,8 @@ async function listUsers({ role, status, search, page = 1, limit = 20 } = {}) {
   }
 
   if (search && typeof search === 'string' && search.trim()) {
-    const regex = new RegExp(search.trim(), 'i');
+    const escaped = escapeRegex(search.trim());
+    const regex = new RegExp(escaped, 'i');
     filter.$or = [{ name: regex }, { email: regex }];
   }
 
@@ -244,6 +261,14 @@ async function updateUserStatus(targetId, newStatus, requestingUserId) {
   user.status = newStatus;
   await user.save();
 
+  await recordAudit({
+    actorId: requestingUserId,
+    action: 'USER_STATUS_UPDATED',
+    resourceType: 'User',
+    resourceId: user._id,
+    accessType: 'MANAGEMENT'
+  });
+
   return user.toJSON();
 }
 
@@ -314,6 +339,14 @@ async function updateUserPermissions(targetId, newPermissions, requestingUserId)
 
   user.permissions = [...preservedManageUsers, ...perms];
   await user.save();
+
+  await recordAudit({
+    actorId: requestingUserId,
+    action: 'USER_PERMISSIONS_UPDATED',
+    resourceType: 'User',
+    resourceId: user._id,
+    accessType: 'MANAGEMENT'
+  });
 
   return user.toJSON();
 }
