@@ -1,0 +1,36 @@
+<div class="modal-dialog-header">
+  <div class="dialog-icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <div>
+    <h3 class="dialog-title">Create Pharmacy Account</h3>
+    <p class="dialog-subtitle">Provision pharmacy dispensary staff account</p>
+  </div>
+</div>
+
+<form [formGroup]="form" class="modal-form" (ngSubmit)="onSubmit()">
+  <div class="form-group">
+    <label for="pharmName">Staff Name or Pharmacy Branch</label>
+    <input type="text" id="pharmName" formControlName="name" placeholder="e.g. Central Dispensary" />
+  </div>
+
+  <div class="form-group">
+    <label for="pharmEmail">Email Address</label>
+    <input type="email" id="pharmEmail" formControlName="email" placeholder="e.g. pharmacy@smarthospital.local" />
+  </div>
+
+  <div class="form-group">
+    <label for="pharmPassword">Temporary Password</label>
+    <input type="password" id="pharmPassword" formControlName="password" placeholder="Create secure initial password" />
+  </div>
+
+  <div class="modal-dialog-actions">
+    <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSaving">Cancel</button>
+    <button type="submit" class="btn btn-primary" [disabled]="isSaving || form.invalid">
+      <span *ngIf="isSaving">Creating Account...</span>
+      <span *ngIf="!isSaving">Create Pharmacy</span>
+    </button>
+  </div>
+</form>

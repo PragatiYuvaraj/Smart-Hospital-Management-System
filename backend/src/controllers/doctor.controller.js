@@ -62,9 +62,23 @@ const updateDoctorProfile = async (req, res, next) => {
   }
 };
 
+const listDoctors = async (req, res, next) => {
+  try {
+    const data = await doctorService.listDoctors(req.user, req.query);
+    res.status(200).json({
+      success: true,
+      message: 'Doctor profiles retrieved successfully.',
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createDoctorProfile,
   getOwnProfile,
   getDoctorProfile,
-  updateDoctorProfile
+  updateDoctorProfile,
+  listDoctors
 };

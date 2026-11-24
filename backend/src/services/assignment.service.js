@@ -471,9 +471,98 @@ const reassign = async (assignmentId, payload = {}, requestingUser) => {
   }
 };
 
+const listAssignments = async (requestingUser, query = {}) => {
+  assertManager(requestingUser);
+  const filter = {};
+  if (query.status && ['ACTIVE', 'CLOSED'].includes(query.status.toUpperCase())) {
+    filter.status = query.status.toUpperCase();
+  }
+  if (query.patientId && isObjectId(query.patientId)) {
+    filter.patientId = query.patientId;
+  }
+  if (query.doctorId && isObjectId(query.doctorId)) {
+    filter.doctorId = query.doctorId;
+  }
+
+  const queryObj = DoctorAssignment.find(filter);
+  const assignments = typeof queryObj.sort === 'function'
+    ? await queryObj.sort({ startDate: -1, createdAt: -1 })
+    : await queryObj;
+
+  if (!assignments || assignments.length === 0) {
+    return { assignments: [] };
+  }
+
+  const patientIds = [...new Set(assignments.map((a) => String(a.patientId)))];
+  const doctorIds = [...new Set(assignments.map((a) => String(a.doctorId)))];
+
+  const fetchPatients = async (ids) => {
+    const q = Patient.find({ _id: { $in: ids } });
+    if (typeof q.select === 'function') {
+      return q.select('_id name patientNumber contactNumber status').lean();
+    }
+    return q;
+  };
+
+  const fetchDoctors = async (ids) => {
+    try {
+      const q = Doctor.find({ _id: { $in: ids } });
+      if (q && typeof q.select === 'function') {
+        return await q.select('_id name doctorNumber specialization department status').lean();
+      }
+      const res = await q;
+      if (Array.isArray(res) && res.length > 0) return res;
+    } catch (_) {}
+    return Promise.all(ids.map((id) => Doctor.findById(id)));
+  };
+
+  const [patients, doctors] = await Promise.all([
+    fetchPatients(patientIds),
+    fetchDoctors(doctorIds)
+  ]);
+
+  const patientMap = new Map((patients || []).filter(Boolean).map((p) => [String(p._id), p]));
+  const doctorMap = new Map((doctors || []).filter(Boolean).map((d) => [String(d._id), d]));
+
+  const enriched = assignments.map((assignment) => {
+    const patient = patientMap.get(String(assignment.patientId));
+    const doctor = doctorMap.get(String(assignment.doctorId));
+    return {
+      _id: assignment._id,
+      patientId: assignment.patientId,
+      doctorId: assignment.doctorId,
+      assignmentType: assignment.assignmentType,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
+      status: assignment.status,
+      assignedBy: assignment.assignedBy,
+      createdAt: assignment.createdAt,
+      updatedAt: assignment.updatedAt,
+      patient: patient ? {
+        _id: patient._id,
+        name: patient.name,
+        patientNumber: patient.patientNumber,
+        contactNumber: patient.contactNumber,
+        status: patient.status
+      } : null,
+      doctor: doctor ? {
+        _id: doctor._id,
+        name: doctor.name,
+        doctorNumber: doctor.doctorNumber,
+        specialization: doctor.specialization,
+        department: doctor.department,
+        status: doctor.status
+      } : null
+    };
+  });
+
+  return { assignments: enriched };
+};
+
 module.exports = {
   createAssignment,
   getPatientAssignment,
   getDoctorPatients,
-  reassign
+  reassign,
+  listAssignments
 };

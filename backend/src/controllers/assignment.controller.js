@@ -64,9 +64,23 @@ const reassign = async (req, res, next) => {
   }
 };
 
+const listAssignments = async (req, res, next) => {
+  try {
+    const data = await assignmentService.listAssignments(req.user, req.query);
+    res.status(200).json({
+      success: true,
+      message: 'Assignments retrieved successfully.',
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAssignment,
   getPatientAssignment,
   getDoctorPatients,
-  reassign
+  reassign,
+  listAssignments
 };

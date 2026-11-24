@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Modern Patient Registration Screen Styles — Phase UI-1
+   Patient Registration Screen Styles — Healthcare SaaS Architecture
+   Deep Forest Green, Sophisticated Teal, Warm Off-White Canvas
    ========================================================================== */
 
 .auth-wrapper {
@@ -8,6 +9,7 @@
   align-items: center;
   min-height: calc(100vh - 100px);
   padding: 32px 16px;
+  background-color: var(--bg-app, #f8faf9);
 }
 
 .auth-card-container {
@@ -16,41 +18,55 @@
 }
 
 .auth-card {
-  padding: 36px 32px;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-light);
+  padding: 38px 34px;
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--border-light, #e2e8e4);
   box-shadow: var(--shadow-md);
   margin-bottom: 0;
+  background: var(--bg-surface, #ffffff);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-800, #064e3b), var(--teal-600, #0d9488));
+  }
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 
 .auth-logo-badge {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary-700), var(--emerald-600));
+  background: linear-gradient(135deg, var(--primary-800, #064e3b), var(--teal-600, #0d9488));
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px auto;
-  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 12px rgba(6, 78, 59, 0.25);
 }
 
 .auth-header h2 {
   font-size: 1.45rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #15221e);
   margin-bottom: 6px;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .auth-header p {
   font-size: 0.86rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #64756d);
 }
 
 .auth-form {
@@ -58,7 +74,6 @@
   flex-direction: column;
 }
 
-/* Input with icon */
 .input-with-icon {
   position: relative;
   display: flex;
@@ -68,7 +83,7 @@
 .input-icon {
   position: absolute;
   left: 12px;
-  color: var(--text-subtle);
+  color: var(--text-subtle, #93a39b);
   pointer-events: none;
 }
 
@@ -81,48 +96,24 @@
   padding: 12px;
   font-size: 0.95rem;
   margin-top: 10px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 8px);
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: 22px;
+  margin-top: 24px;
   font-size: 0.88rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #3d4f48);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-}
 
-.auth-footer a {
-  color: var(--primary-700);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color var(--transition-fast);
-}
-
-.auth-footer a:hover {
-  color: var(--primary-800);
-  text-decoration: underline;
-}
-
-.registration-note {
-  margin-top: 20px;
-  padding: 10px 14px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.4;
-}
-
-.registration-note svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--text-subtle);
+  a {
+    color: var(--primary-800, #064e3b);
+    font-weight: 600;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }

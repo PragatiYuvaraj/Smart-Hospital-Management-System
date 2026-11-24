@@ -1,0 +1,406 @@
+<div class="manage-assignments-container">
+
+  <!-- Header Card -->
+  <div class="card header-card">
+    <div class="header-content">
+      <div class="header-text">
+        <div class="header-badge-row">
+          <h2>Patient-to-Doctor Assignment Management</h2>
+          <span class="cmo-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            CMO Governance
+          </span>
+        </div>
+        <p class="subtitle">Direct hospital-wide treating doctor assignments, workload distribution, and care transitions</p>
+      </div>
+
+      <div class="header-metrics">
+        <div class="metric-pill">
+          <span class="metric-label">Total Recorded</span>
+          <span class="metric-value">{{ assignments.length }}</span>
+        </div>
+        <div class="metric-pill active-pill">
+          <span class="metric-dot"></span>
+          <span class="metric-label">Active Care</span>
+          <span class="metric-value">{{ activeAssignmentsCount }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  <div *ngIf="errorMsg" class="error-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <!-- Create Assignment Card -->
+  <div class="card creation-card">
+    <div class="creation-header">
+      <div class="creation-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="8.5" cy="7" r="4"/>
+          <line x1="20" y1="8" x2="20" y2="14"/>
+          <line x1="23" y1="11" x2="17" y2="11"/>
+        </svg>
+      </div>
+      <div>
+        <h3>Assign Patient to Doctor</h3>
+        <p class="section-desc">Designate a licensed attending physician responsible for a patient's primary inpatient/outpatient care</p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="assignPatient()" class="assignment-form">
+      <div class="form-grid">
+        <!-- Patient Selector -->
+        <div class="form-group">
+          <label for="patientSelect">
+            Eligible Patient <span class="required">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select
+              id="patientSelect"
+              name="patientSelect"
+              [(ngModel)]="selectedPatientId"
+              class="form-control"
+              required
+            >
+              <option value="" disabled selected>— Select a patient from hospital registry —</option>
+              <option *ngFor="let p of patients" [value]="p._id">
+                {{ p.name }} ({{ p.patientNumber }})
+              </option>
+            </select>
+          </div>
+          <span class="field-hint" *ngIf="patients.length > 0">{{ patients.length }} registered active patient(s) available</span>
+        </div>
+
+        <!-- Doctor Selector -->
+        <div class="form-group">
+          <label for="doctorSelect">
+            Attending Doctor <span class="required">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select
+              id="doctorSelect"
+              name="doctorSelect"
+              [(ngModel)]="selectedDoctorId"
+              class="form-control"
+              required
+            >
+              <option value="" disabled selected>— Select an active medical practitioner —</option>
+              <option *ngFor="let d of doctors" [value]="d._id">
+                Dr. {{ d.name }} — {{ d.specialization }} ({{ d.department }})
+              </option>
+            </select>
+          </div>
+          <span class="field-hint" *ngIf="doctors.length > 0">{{ doctors.length }} active licensed doctor(s) on duty</span>
+        </div>
+      </div>
+
+      <div *ngIf="createError" class="form-inline-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ createError }}</span>
+      </div>
+
+      <div *ngIf="successMsg" class="form-inline-success">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>{{ successMsg }}</span>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary btn-assign"
+          [disabled]="isCreating || !selectedPatientId || !selectedDoctorId"
+        >
+          <span *ngIf="isCreating" class="spinner-sm"></span>
+          <span *ngIf="!isCreating">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <polyline points="17 11 19 13 23 9"/>
+            </svg>
+            Assign Patient
+          </span>
+          <span *ngIf="isCreating">Creating Assignment...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Existing Assignments Card -->
+  <div class="card table-card">
+    <div class="table-header-bar">
+      <div>
+        <h3>Current & Historical Assignments</h3>
+        <p class="section-desc">Audit trail of all patient-doctor care relationships</p>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Filter by patient name, number, doctor, or department..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilter()"
+          class="search-input"
+          aria-label="Filter assignments"
+        />
+        <button *ngIf="searchTerm" (click)="clearSearch()" class="clear-btn" aria-label="Clear filter">✕</button>
+      </div>
+
+      <div class="status-filters">
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="statusFilter === 'ALL'"
+          (click)="statusFilter = 'ALL'; applyFilter()"
+        >
+          All ({{ assignments.length }})
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="statusFilter === 'ACTIVE'"
+          (click)="statusFilter = 'ACTIVE'; applyFilter()"
+        >
+          Active
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="statusFilter === 'CLOSED'"
+          (click)="statusFilter = 'CLOSED'; applyFilter()"
+        >
+          Closed / Reassigned
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading hospital care assignments...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && filteredAssignments.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h4>No assignments found</h4>
+      <p *ngIf="searchTerm || statusFilter !== 'ALL'">
+        No assignments match the selected filter criteria. Try clearing your search.
+      </p>
+      <p *ngIf="!searchTerm && statusFilter === 'ALL'">
+        No patient-to-doctor assignments have been registered yet. Use the assignment form above to create the first assignment.
+      </p>
+    </div>
+
+    <!-- Table -->
+    <div *ngIf="!isLoading && filteredAssignments.length > 0" class="table-responsive">
+      <table class="assignment-table">
+        <thead>
+          <tr>
+            <th>Patient Details</th>
+            <th>Attending Doctor</th>
+            <th>Status</th>
+            <th>Effective Date</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredAssignments">
+            <!-- Patient Cell -->
+            <td>
+              <div class="entity-cell">
+                <span class="avatar patient-avatar">
+                  {{ getPatientInitials(item.patient?.name) }}
+                </span>
+                <div class="entity-info">
+                  <span class="entity-name">{{ item.patient?.name || 'Unknown Patient' }}</span>
+                  <div class="entity-meta">
+                    <span class="badge-code">{{ item.patient?.patientNumber || 'ID: ' + item.patientId }}</span>
+                    <span *ngIf="item.patient?.contactNumber" class="meta-separator">•</span>
+                    <span *ngIf="item.patient?.contactNumber" class="text-subtle">{{ item.patient?.contactNumber }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Doctor Cell -->
+            <td>
+              <div class="entity-cell">
+                <span class="avatar doctor-avatar">
+                  {{ getDoctorInitials(item.doctor?.name) }}
+                </span>
+                <div class="entity-info">
+                  <span class="entity-name">Dr. {{ item.doctor?.name || 'Assigned Physician' }}</span>
+                  <div class="entity-meta">
+                    <span class="specialty-tag">{{ item.doctor?.specialization || 'Clinical Doctor' }}</span>
+                    <span class="department-name">{{ item.doctor?.department }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Status Cell -->
+            <td>
+              <span
+                class="status-pill"
+                [class.status-active]="item.status === 'ACTIVE'"
+                [class.status-closed]="item.status === 'CLOSED'"
+              >
+                <span class="dot"></span>
+                {{ item.status === 'ACTIVE' ? 'Active Care' : 'Closed / Historical' }}
+              </span>
+            </td>
+
+            <!-- Effective Date Cell -->
+            <td>
+              <div class="date-cell">
+                <span class="date-primary">{{ item.startDate | date:'mediumDate' }}</span>
+                <span *ngIf="item.endDate" class="date-secondary">Ended: {{ item.endDate | date:'mediumDate' }}</span>
+                <span *ngIf="!item.endDate" class="date-secondary active-ongoing">Ongoing</span>
+              </div>
+            </td>
+
+            <!-- Actions Cell -->
+            <td class="actions-col">
+              <button
+                *ngIf="item.status === 'ACTIVE'"
+                type="button"
+                class="btn btn-xs btn-outline-teal"
+                (click)="openReassignModal(item)"
+                title="Transfer or reassign this patient to another doctor"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="17 1 21 5 17 9"/>
+                  <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                  <polyline points="7 23 3 19 7 15"/>
+                  <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+                Reassign Doctor
+              </button>
+              <span *ngIf="item.status === 'CLOSED'" class="text-muted-history">
+                Archived
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!isLoading && filteredAssignments.length > 0" class="table-footer">
+      <span>Showing <strong>{{ filteredAssignments.length }}</strong> of {{ assignments.length }} total assignment record(s)</span>
+    </div>
+  </div>
+
+  <!-- Reassign Modal Dialog -->
+  <div *ngIf="showReassignModal" class="modal-backdrop" (click)="closeReassignModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="17 1 21 5 17 9"/>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </div>
+        <div>
+          <h4>Reassign Patient Care</h4>
+          <p class="modal-subtitle">Transfer treating physician responsibilities</p>
+        </div>
+        <button type="button" class="modal-close" (click)="closeReassignModal()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="targetAssignment">
+        <!-- Current Assignment Summary -->
+        <div class="reassign-summary-box">
+          <div class="summary-row">
+            <span class="label">Patient:</span>
+            <strong>{{ targetAssignment.patient?.name || 'Selected Patient' }}</strong>
+            <span class="code-sm">{{ targetAssignment.patient?.patientNumber }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Current Doctor:</span>
+            <span>Dr. {{ targetAssignment.doctor?.name || 'Unknown' }}</span>
+            <span class="specialty-sm">({{ targetAssignment.doctor?.specialization }})</span>
+          </div>
+        </div>
+
+        <!-- Replacement Doctor Selection -->
+        <div class="form-group modal-form-group">
+          <label for="newDoctorSelect">
+            New Attending Doctor <span class="required">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select
+              id="newDoctorSelect"
+              [(ngModel)]="reassignDoctorId"
+              class="form-control"
+            >
+              <option value="" disabled selected>— Select replacement doctor —</option>
+              <option
+                *ngFor="let d of doctors"
+                [value]="d._id"
+                [disabled]="d._id === targetAssignment.doctorId"
+              >
+                Dr. {{ d.name }} — {{ d.specialization }} ({{ d.department }})
+                {{ d._id === targetAssignment.doctorId ? ' [Current]' : '' }}
+              </option>
+            </select>
+          </div>
+          <span class="field-hint">The current assignment will be closed with an audit log and a new active assignment will be initiated.</span>
+        </div>
+
+        <div *ngIf="reassignError" class="modal-error-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>{{ reassignError }}</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeReassignModal()"
+          [disabled]="isReassigning"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="submitReassign()"
+          [disabled]="isReassigning || !reassignDoctorId"
+        >
+          <span *ngIf="isReassigning" class="spinner-sm"></span>
+          <span *ngIf="!isReassigning">Confirm Reassignment</span>
+          <span *ngIf="isReassigning">Transferring...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

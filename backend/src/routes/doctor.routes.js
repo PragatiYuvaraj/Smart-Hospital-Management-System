@@ -15,6 +15,12 @@ router.post(
 );
 
 router.get(
+  '/',
+  authenticate,
+  doctorController.listDoctors
+);
+
+router.get(
   '/me',
   authenticate,
   authorizeRole('DOCTOR'),

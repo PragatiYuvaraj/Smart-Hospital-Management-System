@@ -71,3 +71,11 @@ export interface HospitalPatientsResponse {
     totalPages: number;
   };
 }
+
+// New request type for creating a doctor profile
+export interface CreateDoctorProfileRequest {
+  userId: string;
+  specialization: string;
+  registrationReference: string;
+  department: string;
+}

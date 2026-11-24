@@ -7,6 +7,13 @@ const assignmentController = require('../controllers/assignment.controller');
 
 const router = express.Router();
 
+router.get(
+  '/',
+  authenticate,
+  requirePermission('MANAGE_USERS'),
+  assignmentController.listAssignments
+);
+
 router.post(
   '/',
   authenticate,

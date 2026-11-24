@@ -1,0 +1,44 @@
+<div class="modal-dialog-header">
+  <div class="dialog-icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  </div>
+  <div>
+    <h3 class="dialog-title">Edit Doctor Permissions</h3>
+    <p class="dialog-subtitle">Configure clinical access privileges for {{ data?.name || 'physician' }}</p>
+  </div>
+  </div>
+
+  <form [formGroup]="permissionsForm" class="modal-form" (ngSubmit)="onSave()">
+    <div class="permissions-card">
+      <span class="permissions-card-title">Select Granted Privileges</span>
+      <div class="permission-option">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="DUTY_DOCTOR" />
+          <div class="option-meta">
+            <span class="option-name">Duty Doctor</span>
+            <span class="option-desc">Cross-coverage across hospital wards and emergency roster</span>
+          </div>
+        </label>
+      </div>
+      <div class="permission-option">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="VAULT_ACCESS" />
+          <div class="option-meta">
+            <span class="option-name">Document Vault</span>
+            <span class="option-desc">Private physician document storage repository</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-dialog-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSaving">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+        <span *ngIf="isSaving">Saving Changes...</span>
+        <span *ngIf="!isSaving">Save Permissions</span>
+      </button>
+    </div>
+  </form>

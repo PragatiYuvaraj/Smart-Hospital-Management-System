@@ -1,0 +1,46 @@
+.modal-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle, #edf2ee);
+
+  .dialog-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #fefce8;
+    color: #854d0e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dialog-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary, #15221e);
+    margin: 0;
+  }
+
+  .dialog-subtitle {
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64756d);
+    margin: 2px 0 0 0;
+  }
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 10px;
+}

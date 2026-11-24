@@ -1,0 +1,121 @@
+<div class="staff-management-container">
+  <div class="card header-card">
+    <div class="header-content">
+      <div class="header-text">
+        <h2>Hospital Staff Management</h2>
+        <p class="subtitle">CMO portal for provisioning, role governance, and staff activation</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" (click)="openCreateDoctor()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Doctor
+        </button>
+        <button class="btn btn-secondary" (click)="openCreatePharmacy()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Pharmacy
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="card loading-card">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading hospital staff records...</p>
+  </div>
+
+  <div *ngIf="errorMsg" class="error-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ errorMsg }}
+  </div>
+
+  <div class="card table-card" *ngIf="!isLoading">
+    <!-- Search Bar -->
+    <div class="toolbar">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          type="text"
+          placeholder="Search staff by name or email address..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilter($event)"
+          aria-label="Search staff"
+          class="search-input"
+        />
+        <button *ngIf="searchTerm" (click)="clearSearch()" aria-label="Clear search" class="clear-btn">✕</button>
+      </div>
+      <span class="count-badge" *ngIf="filteredStaff.length > 0">
+        Showing <strong>{{ filteredStaff.length }}</strong> of {{ staff.length }} staff account(s)
+      </span>
+    </div>
+
+    <!-- Data Table -->
+    <div *ngIf="filteredStaff.length > 0" class="table-responsive">
+      <table class="staff-table">
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Permissions</th>
+            <th class="actions-header">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredStaff">
+            <td>
+              <div class="user-cell">
+                <span class="user-initials">{{ user.name.slice(0, 2).toUpperCase() }}</span>
+                <strong>{{ user.name }}</strong>
+              </div>
+            </td>
+            <td><code>{{ user.email }}</code></td>
+            <td>
+              <span class="role-pill" [ngClass]="user.role.toLowerCase()">{{ user.role }}</span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="user.status.toLowerCase()">{{ user.status }}</span>
+            </td>
+            <td>
+              <div class="permissions-cell">
+                <span *ngFor="let p of user.permissions" class="perm-tag">{{ p }}</span>
+                <span *ngIf="!user.permissions || user.permissions.length === 0" class="text-muted">None</span>
+              </div>
+            </td>
+            <td class="actions-cell">
+              <button
+                class="btn btn-xs"
+                [ngClass]="user.status === 'ACTIVE' ? 'btn-danger' : 'btn-emerald'"
+                (click)="toggleStatus(user)"
+                [disabled]="user.updating"
+                *ngIf="user.role !== 'CMO'"
+              >
+                {{ user.status === 'ACTIVE' ? 'Deactivate' : 'Activate' }}
+              </button>
+              <button
+                class="btn btn-xs btn-secondary"
+                (click)="openEditPermissions(user)"
+                [disabled]="user.updating"
+                *ngIf="user.role === 'DOCTOR' && user._id !== currentUserId"
+              >
+                Edit Privileges
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty Search State -->
+    <div *ngIf="staff.length > 0 && filteredStaff.length === 0" class="empty-state">
+      <p class="empty-title">No staff members match your search.</p>
+      <p class="empty-desc">Try clearing the search term or check spelling.</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="staff.length === 0" class="empty-state">
+      <p class="empty-title">No staff accounts found.</p>
+      <p class="empty-desc">Use the buttons above to provision doctor or pharmacy staff.</p>
+    </div>
+  </div>
+</div>

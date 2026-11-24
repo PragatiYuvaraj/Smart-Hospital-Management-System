@@ -97,9 +97,10 @@ const listVisiblePatients = async (requestingUser, query = {}) => {
     accessType = 'SELF_SERVICE';
   } else if (requestingUser.role === 'DOCTOR') {
     const doctor = await getActiveDoctorProfile(requestingUser);
-    if (isDutyDoctor(requestingUser)) {
+    const isManager = (requestingUser.permissions || []).includes('MANAGE_USERS');
+    if (isDutyDoctor(requestingUser) || isManager) {
       filter = {};
-      accessType = 'DUTY_DOCTOR_COVERAGE';
+      accessType = isManager ? 'MANAGEMENT' : 'DUTY_DOCTOR_COVERAGE';
     } else {
       const assignments = await DoctorAssignment.find({
         doctorId: doctor._id,

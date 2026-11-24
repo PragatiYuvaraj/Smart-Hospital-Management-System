@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Modern Login Screen Styles — Phase UI-1
+   Modern Login Screen Styles — Healthcare SaaS Architecture
+   Deep Forest Green, Sophisticated Teal, Warm Off-White Canvas
    ========================================================================== */
 
 .auth-wrapper {
@@ -8,6 +9,7 @@
   align-items: center;
   min-height: calc(100vh - 100px);
   padding: 32px 16px;
+  background-color: var(--bg-app, #f8faf9);
 }
 
 .auth-card-container {
@@ -16,11 +18,24 @@
 }
 
 .auth-card {
-  padding: 36px 32px;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-light);
+  padding: 38px 34px;
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--border-light, #e2e8e4);
   box-shadow: var(--shadow-md);
   margin-bottom: 0;
+  background: var(--bg-surface, #ffffff);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-800, #064e3b), var(--teal-600, #0d9488));
+  }
 }
 
 .auth-header {
@@ -32,25 +47,26 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary-700), var(--emerald-600));
+  background: linear-gradient(135deg, var(--primary-800, #064e3b), var(--teal-600, #0d9488));
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px auto;
-  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 12px rgba(6, 78, 59, 0.25);
 }
 
 .auth-header h2 {
   font-size: 1.45rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #15221e);
   margin-bottom: 6px;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .auth-header p {
   font-size: 0.86rem;
-  color: var(--text-muted);
+  color: var(--text-muted, #64756d);
 }
 
 .auth-form {
@@ -58,7 +74,6 @@
   flex-direction: column;
 }
 
-/* Input with icon */
 .input-with-icon {
   position: relative;
   display: flex;
@@ -68,7 +83,7 @@
 .input-icon {
   position: absolute;
   left: 12px;
-  color: var(--text-subtle);
+  color: var(--text-subtle, #93a39b);
   pointer-events: none;
 }
 
@@ -81,94 +96,82 @@
   padding: 12px;
   font-size: 0.95rem;
   margin-top: 10px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 8px);
 }
 
 .auth-footer {
   text-align: center;
   margin-top: 24px;
   font-size: 0.88rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #3d4f48);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+
+  a {
+    color: var(--primary-800, #064e3b);
+    font-weight: 600;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
-.auth-footer a {
-  color: var(--primary-700);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color var(--transition-fast);
-}
-
-.auth-footer a:hover {
-  color: var(--primary-800);
-  text-decoration: underline;
-}
-
-/* Demo box */
+/* Demo Accounts Helper */
 .demo-box {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px dashed var(--border-light);
+  margin-top: 28px;
+  padding: 16px;
+  background-color: var(--bg-app, #f8faf9);
+  border: 1px solid var(--border-light, #e2e8e4);
+  border-radius: var(--radius-md, 8px);
   text-align: center;
 }
 
 .demo-title {
   display: block;
   font-size: 0.72rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
   font-weight: 700;
-  margin-bottom: 12px;
-  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #64756d);
+  margin-bottom: 10px;
 }
 
 .demo-buttons {
   display: flex;
-  gap: 8px;
   justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .btn-demo-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 7px 14px;
-  border-radius: var(--radius-pill);
+  background-color: #ffffff;
+  border: 1px solid var(--border-light, #e2e8e4);
+  color: var(--text-secondary, #3d4f48);
   cursor: pointer;
-  transition: all var(--transition-fast);
-}
+  transition: all var(--transition-fast, 0.15s ease);
 
-.role-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
+  &:hover {
+    border-color: var(--border-focus, #0d9488);
+    background-color: var(--primary-50, #f0fdfa);
+    color: var(--primary-800, #064e3b);
+  }
 
-.btn-demo-pill.doctor .role-dot {
-  background-color: var(--primary-600);
-}
+  .role-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
 
-.btn-demo-pill.pharmacy .role-dot {
-  background-color: var(--warning-600);
-}
-
-.btn-demo-pill.patient .role-dot {
-  background-color: var(--info-600);
-}
-
-.btn-demo-pill:hover {
-  background: #ffffff;
-  border-color: var(--primary-700);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  &.doctor .role-dot { background-color: var(--primary-700, #046a53); }
+  &.pharmacy .role-dot { background-color: var(--warning-600, #b45309); }
+  &.patient .role-dot { background-color: var(--info-600, #0e7490); }
 }

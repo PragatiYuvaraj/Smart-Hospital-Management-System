@@ -116,6 +116,15 @@ Patient.find = async ({ _id }) =>
     _id.$in.some((id) => String(id) === String(patient._id))
   );
 
+Doctor.find = async (filter = {}) => {
+  if (filter && filter._id && filter._id.$in) {
+    return Array.from(doctors.values()).filter((doctor) =>
+      filter._id.$in.some((id) => String(id) === String(doctor._id))
+    );
+  }
+  return Array.from(doctors.values());
+};
+
 Doctor.findById = async (id) => doctors.get(String(id)) || null;
 
 Doctor.findOne = async ({ userId }) =>
@@ -542,6 +551,17 @@ const runTests = async () => {
     assertTest(
       assignmentSaveSessions.filter((session) => session === transactionSession).length === 2,
       'Closing the previous assignment and creating the replacement share a session'
+    );
+
+    const listRes = await request('GET', '/api/assignments', { token: managerToken });
+    assertTest(
+      listRes.statusCode === 200 && Array.isArray(listRes.body?.data?.assignments),
+      'Management successfully lists all assignments'
+    );
+    const doctorListRes = await request('GET', '/api/assignments', { token: doctorToken });
+    assertTest(
+      doctorListRes.statusCode === 403,
+      'Doctor without MANAGE_USERS cannot list all assignments'
     );
   } finally {
     User.findById = originalMethods.userFindById;

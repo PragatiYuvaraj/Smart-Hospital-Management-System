@@ -1,7 +1,11 @@
+/* ==========================================================================
+   Patient Profile — Healthcare SaaS Architecture
+   Deep Forest Green, Sophisticated Teal, Warm Off-White Canvas
+   ========================================================================== */
+
 .profile-container {
-  max-width: 960px;
-  margin: 32px auto;
-  padding: 0 20px;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .card-header {
@@ -10,15 +14,23 @@
   align-items: flex-start;
   margin-bottom: 28px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light, #f1f5f9);
+  border-bottom: 1px solid var(--border-subtle, #edf2ee);
   flex-wrap: wrap;
   gap: 16px;
-}
 
-.subtitle {
-  color: var(--text-muted, #64748b);
-  font-size: 0.875rem;
-  margin-top: 4px;
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #15221e);
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-muted, #64756d);
+    font-size: 0.875rem;
+    margin-top: 4px;
+  }
 }
 
 .loading-state {
@@ -26,157 +38,78 @@
   flex-direction: column;
   align-items: center;
   padding: 48px 0;
-  color: var(--text-muted, #64748b);
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--border-light, #e2e8f0);
-  border-top-color: var(--primary-700, #0f766e);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  color: var(--text-muted, #64756d);
+  gap: 12px;
 }
 
 .section {
   margin-bottom: 36px;
-}
 
-.section:last-child {
-  margin-bottom: 0;
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .section-title {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-main, #0f172a);
+  font-weight: 700;
+  color: var(--text-primary, #15221e);
   margin-bottom: 18px;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--primary-50, #f0fdfa);
 }
 
-.details-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 14px;
-}
-
-.details-table td {
-  padding: 12px 14px;
-  font-size: 0.9375rem;
-  border-bottom: 1px solid var(--border-light, #f1f5f9);
-}
-
-.details-table .key {
-  width: 220px;
-  color: var(--text-muted, #64748b);
-  font-weight: 500;
-}
-
-.details-table .value {
-  color: var(--text-main, #0f172a);
-}
-
 .patient-number-badge code {
-  background: var(--primary-50, #f0fdfa);
-  color: var(--primary-800, #115e59);
-  padding: 4px 10px;
-  border-radius: var(--radius-md, 6px);
+  background: #e6f4f1;
+  color: var(--primary-800, #064e3b);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 6px);
   font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  border: 1px solid #ccfbf1;
-  font-size: 0.875rem;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill, 9999px);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.status-badge.active,
-.status-badge.dispensed {
-  background-color: var(--emerald-50, #ecfdf5);
-  color: #047857;
-  border: 1px solid #a7f3d0;
-}
-
-.status-badge.inactive {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.status-badge.pending {
-  background-color: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  border: 1px solid #c2e2dc;
+  font-size: 0.825rem;
 }
 
 .notice-text {
   display: block;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, #64756d);
   font-size: 0.8125rem;
-  font-style: italic;
-  margin-top: 8px;
+  margin-top: 14px;
+  background: var(--bg-app, #f8faf9);
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 6px);
+  border-left: 3px solid var(--primary-700, #046a53);
 }
 
 .edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  max-width: 680px;
 }
 
 .field-hint {
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
-  align-self: flex-end;
+  color: var(--text-muted, #64756d);
+  margin-top: 4px;
+  display: block;
 }
 
 .form-actions {
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 24px;
 }
 
-.medical-records-section {
-  border-top: 1px solid var(--border-light, #e2e8f0);
-  padding-top: 28px;
-}
-
-.records-heading,
-.medical-record-card-heading,
-.detail-heading {
+.records-heading {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
-}
-
-.records-heading .section-title {
-  margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
 }
 
 .records-intro {
-  margin: 0 0 16px;
-  color: var(--text-muted, #64748b);
+  margin: 4px 0 0;
+  color: var(--text-muted, #64756d);
   font-size: 0.875rem;
 }
 
@@ -184,223 +117,85 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 16px;
-  color: var(--text-muted, #64748b);
-  text-align: center;
+  padding: 36px 0;
+  color: var(--text-muted, #64756d);
+  gap: 10px;
 }
 
-.records-empty,
-.empty-state {
-  padding: 36px 20px;
-  border: 1px dashed var(--border-light, #cbd5e1);
+.records-empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--bg-app, #f8faf9);
   border-radius: var(--radius-lg, 12px);
-  background: var(--bg-app, #f8fafc);
-  text-align: center;
+  border: 1px dashed var(--border-light, #e2e8e4);
+
+  h4 {
+    margin: 0;
+    color: var(--text-primary, #15221e);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--text-muted, #64756d);
+    font-size: 0.875rem;
+  }
 }
 
-.records-empty h4,
-.empty-state .empty-title {
-  margin: 0 0 6px;
-  color: var(--text-main, #1e293b);
-  font-size: 1rem;
-  font-weight: 600;
+.medical-record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.records-empty p,
-.empty-state .empty-subtitle {
-  margin: 0;
-  color: var(--text-muted, #64748b);
-  font-size: 0.875rem;
+.medical-record-card {
+  padding: 16px 20px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-light, #e2e8e4);
+  background: var(--bg-surface, #ffffff);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-fast, 0.15s ease);
+
+  &:hover {
+    border-color: #cbd8d1;
+  }
 }
 
-.medical-record-list,
-.prescriptions-list {
-  display: grid;
+.medical-record-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
 }
 
-.medical-record-card,
-.medical-record-detail {
-  padding: 20px;
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--bg-surface, #ffffff);
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--transition-fast, 0.15s ease);
-}
-
-.medical-record-card:hover {
-  border-color: #cbd5e1;
-}
-
 .record-date {
-  margin: 0 0 4px;
-  color: var(--text-main, #0f172a);
   font-weight: 700;
-  font-size: 1rem;
+  color: var(--text-primary, #15221e);
+  font-size: 0.95rem;
 }
 
 .record-reason {
-  margin: 0;
-  color: var(--text-muted, #64748b);
+  margin: 4px 0 0;
+  color: var(--text-secondary, #3d4f48);
   font-size: 0.875rem;
 }
 
 .record-status {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill, 9999px);
-  background: var(--emerald-50, #ecfdf5);
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm, 6px);
   font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.record-status.overdue-status,
-.record-status.failed-status {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.notification-unread {
-  border-left: 4px solid var(--primary-700, #0f766e);
-  background-color: var(--primary-50, #f0fdfa);
-}
-
-.notification-dates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin: 12px 0;
-  color: var(--text-muted, #64748b);
-  font-size: 0.8125rem;
-}
-
-.record-summary,
-.record-detail-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 20px;
-  margin: 16px 0;
-}
-
-.record-summary dt,
-.record-detail-list dt {
-  margin-bottom: 4px;
-  color: var(--text-muted, #64748b);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.record-summary dd,
-.record-detail-list dd {
-  margin: 0;
-  color: var(--text-main, #0f172a);
-  font-size: 0.9375rem;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.records-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-  color: var(--text-muted, #475569);
-  font-size: 0.875rem;
-}
-
-.medical-record-detail {
-  margin-top: 24px;
-  background: var(--bg-app, #f8fafc);
-  border: 1px solid var(--border-light, #e2e8f0);
-}
-
-.detail-heading {
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.detail-heading h4 {
-  margin: 0;
-  color: var(--text-main, #0f172a);
-  font-size: 1.125rem;
   font-weight: 700;
-}
+  text-transform: uppercase;
+  background-color: var(--info-bg, #f0fdfa);
+  color: var(--info-600, #0e7490);
+  border: 1px solid var(--info-border, #a5f3fc);
 
-.detail-content > .record-date {
-  display: inline-block;
-  margin-right: 12px;
-}
-
-.record-detail-list {
-  grid-template-columns: 1fr;
-  margin-top: 20px;
-}
-
-.amendments-section {
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border-light, #e2e8f0);
-}
-
-.amendments-section h5 {
-  margin: 0 0 12px;
-  color: var(--text-main, #0f172a);
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.amendment-card {
-  padding: 14px;
-  margin-top: 10px;
-  border-left: 3px solid var(--primary-700, #0f766e);
-  background: var(--bg-surface, #ffffff);
-  border-radius: 0 var(--radius-md, 6px) var(--radius-md, 6px) 0;
-  border-top: 1px solid var(--border-light, #f1f5f9);
-  border-right: 1px solid var(--border-light, #f1f5f9);
-  border-bottom: 1px solid var(--border-light, #f1f5f9);
-}
-
-.amendment-card p {
-  margin: 0 0 6px;
-  color: var(--text-main, #334155);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.amendment-card .amendment-title {
-  font-weight: 600;
-  color: var(--text-main, #0f172a);
-}
-
-.amendment-card small {
-  color: var(--text-muted, #94a3b8);
-}
-
-@media (max-width: 640px) {
-  .records-heading,
-  .medical-record-card-heading {
-    flex-direction: column;
-  }
-
-  .record-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .medical-record-card,
-  .medical-record-detail {
-    padding: 16px;
-  }
-
-  .details-table .key {
-    width: 140px;
+  &.overdue-status {
+    background-color: var(--danger-bg, #fef2f2);
+    color: var(--danger-600, #b91c1c);
+    border-color: var(--danger-border, #fecaca);
   }
 }

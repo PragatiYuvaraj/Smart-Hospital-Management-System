@@ -217,9 +217,30 @@ const updateDoctorProfile = async (doctorId, payload = {}, actorId) => {
   return toSafeDoctor(doctor);
 };
 
+const listDoctors = async (requestingUser, query = {}) => {
+  if (!canManageUsers(requestingUser) && requestingUser.role !== 'DOCTOR') {
+    throw createError(403, 'You are not authorized to view the doctor list.');
+  }
+
+  const filter = {};
+  if (query.status && ['ACTIVE', 'INACTIVE'].includes(query.status.toUpperCase())) {
+    filter.status = query.status.toUpperCase();
+  } else {
+    filter.status = 'ACTIVE';
+  }
+
+  const doctors = await Doctor.find(filter)
+    .select('_id name doctorNumber specialization department status')
+    .sort({ name: 1 })
+    .lean();
+
+  return { doctors: (doctors || []).map(toSafeDoctor) };
+};
+
 module.exports = {
   createDoctorProfile,
   getOwnProfile,
   getDoctorProfile,
-  updateDoctorProfile
+  updateDoctorProfile,
+  listDoctors
 };

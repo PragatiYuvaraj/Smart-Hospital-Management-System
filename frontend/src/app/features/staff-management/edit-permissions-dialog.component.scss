@@ -1,0 +1,102 @@
+.modal-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle, #edf2ee);
+
+  .dialog-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #e6f4f1;
+    color: var(--primary-800, #064e3b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dialog-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary, #15221e);
+    margin: 0;
+  }
+
+  .dialog-subtitle {
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64756d);
+    margin: 2px 0 0 0;
+  }
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.permissions-card {
+  background: var(--bg-app, #f8faf9);
+  border: 1px solid var(--border-light, #e2e8e4);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+
+  .permissions-card-title {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #64756d);
+    margin-bottom: 10px;
+  }
+
+  .permission-option {
+    margin-bottom: 12px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin-top: 2px;
+      accent-color: var(--primary-700, #046a53);
+      cursor: pointer;
+    }
+
+    .option-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .option-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary, #15221e);
+    }
+
+    .option-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted, #64756d);
+    }
+  }
+}
+
+.modal-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}

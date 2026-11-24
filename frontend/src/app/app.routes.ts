@@ -12,85 +12,26 @@ import { MedicineCatalogueComponent } from './features/pharmacy/medicine-catalog
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { permissionGuard } from './core/guards/permission.guard';
 import { vaultAccessGuard } from './core/guards/vault-access.guard';
+import { StaffManagementComponent } from './features/staff-management/staff-management.component';
+import { ManageAssignmentsComponent } from './features/manage-assignments/manage-assignments.component';
 
 export const routes: Routes = [
-  {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: 'login'
-  },
-  {
-    path: 'login',
-    component: LoginComponent,
-    canActivate: [guestGuard]
-  },
-  {
-    path: 'register',
-    component: RegisterComponent,
-    canActivate: [guestGuard]
-  },
-  {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'patient-dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] }
-  },
-  {
-    path: 'patient-profile',
-    component: PatientProfileComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] }
-  },
-  {
-    path: 'doctor-dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] }
-  },
-  {
-    path: 'doctor-profile',
-    component: DoctorProfileComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] }
-  },
-  {
-    path: 'doctor-patients',
-    component: AssignedPatientsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] }
-  },
-  {
-    path: 'doctor-vault',
-    component: DocumentVaultComponent,
-    canActivate: [authGuard, roleGuard, vaultAccessGuard],
-    data: { roles: ['DOCTOR'] }
-  },
-  {
-    path: 'pharmacy-dashboard',
-    component: PharmacyDashboardComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PHARMACY'] }
-  },
-  {
-    path: 'pharmacy-prescriptions',
-    component: PrescriptionQueueComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PHARMACY'] }
-  },
-  {
-    path: 'pharmacy-medicines',
-    component: MedicineCatalogueComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PHARMACY'] }
-  },
-  {
-    path: '**',
-    redirectTo: 'login'
-  }
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
+  { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
+  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'patient-dashboard', component: DashboardComponent, canActivate: [authGuard, roleGuard], data: { roles: ['PATIENT'] } },
+  { path: 'patient-profile', component: PatientProfileComponent, canActivate: [authGuard, roleGuard], data: { roles: ['PATIENT'] } },
+  { path: 'doctor-dashboard', component: DashboardComponent, canActivate: [authGuard, roleGuard], data: { roles: ['DOCTOR'] } },
+  { path: 'doctor-profile', component: DoctorProfileComponent, canActivate: [authGuard, roleGuard], data: { roles: ['DOCTOR'] } },
+  { path: 'doctor-patients', component: AssignedPatientsComponent, canActivate: [authGuard, roleGuard], data: { roles: ['DOCTOR'] } },
+  { path: 'doctor-vault', component: DocumentVaultComponent, canActivate: [authGuard, roleGuard, vaultAccessGuard], data: { roles: ['DOCTOR'] } },
+  { path: 'pharmacy-dashboard', component: PharmacyDashboardComponent, canActivate: [authGuard, roleGuard], data: { roles: ['PHARMACY'] } },
+  { path: 'pharmacy-prescriptions', component: PrescriptionQueueComponent, canActivate: [authGuard, roleGuard], data: { roles: ['PHARMACY'] } },
+  { path: 'pharmacy-medicines', component: MedicineCatalogueComponent, canActivate: [authGuard, roleGuard], data: { roles: ['PHARMACY'] } },
+  { path: 'staff-management', component: StaffManagementComponent, canActivate: [authGuard, permissionGuard] },
+  { path: 'manage-assignments', component: ManageAssignmentsComponent, canActivate: [authGuard, permissionGuard] },
+  { path: '**', redirectTo: 'login' }
 ];

@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Application Shell Styles — Phase UI-1
+   Application Shell Styles — Healthcare SaaS Architecture
+   Deep Forest Green, Sophisticated Teal, Warm Off-White Canvas
    ========================================================================== */
 
 /* --- GUEST LAYOUT (Login, Register) --- */
@@ -31,12 +32,12 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--primary-700), var(--emerald-600));
+  background: linear-gradient(135deg, var(--primary-800), var(--teal-600));
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 2px 4px rgba(6, 78, 59, 0.2);
   flex-shrink: 0;
 }
 
@@ -74,7 +75,7 @@
 
 .guest-nav-link:hover,
 .guest-nav-link.active {
-  color: var(--primary-700);
+  color: var(--primary-800);
   background-color: var(--primary-50);
 }
 
@@ -128,13 +129,14 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  letter-spacing: -0.01em;
 }
 
 .brand-badge {
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--emerald-400);
+  color: var(--primary-300);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -164,7 +166,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 8px;
 }
@@ -180,19 +182,19 @@
   font-size: 0.85rem;
   flex-shrink: 0;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--primary-600), var(--emerald-500));
+  background: linear-gradient(135deg, var(--primary-800), var(--teal-600));
 }
 
 .user-avatar.doctor {
-  background: linear-gradient(135deg, #0d9488, #059669);
+  background: linear-gradient(135deg, #064e3b, #0d9488);
 }
 
 .user-avatar.patient {
-  background: linear-gradient(135deg, #2563eb, #0d9488);
+  background: linear-gradient(135deg, #0e7490, #14b8a6);
 }
 
 .user-avatar.pharmacy {
-  background: linear-gradient(135deg, #d97706, #059669);
+  background: linear-gradient(135deg, #b45309, #0d9488);
 }
 
 .user-meta {
@@ -224,8 +226,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--emerald-400);
-  box-shadow: 0 0 6px var(--emerald-400);
+  background-color: var(--primary-300);
+  box-shadow: 0 0 6px var(--primary-400);
 }
 
 /* Navigation Links */
@@ -286,14 +288,14 @@
 }
 
 .nav-item.active {
-  background-color: var(--primary-800);
+  background-color: rgba(13, 148, 136, 0.16);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--emerald-400);
+  box-shadow: inset 3px 0 0 var(--primary-300);
 }
 
 .nav-item.active .nav-icon {
-  color: var(--emerald-300);
+  color: var(--primary-300);
 }
 
 /* Sidebar Footer */
@@ -316,8 +318,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--emerald-400);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  background-color: var(--primary-400);
+  box-shadow: 0 0 6px rgba(20, 184, 166, 0.6);
 }
 
 .status-label {
@@ -340,8 +342,8 @@
 }
 
 .btn-sidebar-logout:hover {
-  background-color: rgba(220, 38, 38, 0.2);
-  border-color: rgba(220, 38, 38, 0.4);
+  background-color: rgba(185, 28, 28, 0.2);
+  border-color: rgba(185, 28, 28, 0.4);
   color: #fca5a5;
 }
 
@@ -422,10 +424,10 @@
   display: none;
   background: transparent;
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   width: 36px;
   height: 36px;
+  border-radius: var(--radius-sm);
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -441,34 +443,34 @@
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .topbar-user-badge {
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .topbar-user-badge.doctor {
-  background-color: var(--primary-50);
-  color: var(--primary-800);
-  border: 1px solid var(--primary-100);
+  background-color: #e6f4f1;
+  color: var(--primary-900);
+  border: 1px solid #c2e2dc;
 }
 
 .topbar-user-badge.patient {
-  background-color: var(--info-bg);
-  color: #1e40af;
-  border: 1px solid var(--info-border);
+  background-color: #ecfeff;
+  color: #155e75;
+  border: 1px solid #cffafe;
 }
 
 .topbar-user-badge.pharmacy {
-  background-color: var(--warning-bg);
-  color: #92400e;
-  border: 1px solid var(--warning-border);
+  background-color: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fef08a;
 }
 
 .topbar-user-name {
@@ -477,13 +479,16 @@
   color: var(--text-secondary);
 }
 
-/* Workspace Canvas */
+/* Main Content Canvas */
 .app-content-canvas {
   flex: 1;
-  padding: 24px 28px;
+  padding: 28px 32px;
+  max-width: 1320px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-/* ================= MOBILE & TABLET RESPONSIVENESS ================= */
+/* ================= MOBILE DRAWER RESPONSIVE ================= */
 @media (max-width: 900px) {
   .btn-mobile-menu {
     display: flex;
@@ -498,36 +503,36 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 260px;
     transform: translateX(-100%);
-    box-shadow: none;
+    box-shadow: var(--shadow-lg);
   }
 
   .app-sidebar.mobile-open {
     transform: translateX(0);
-    box-shadow: 0 0 32px rgba(0, 0, 0, 0.4);
   }
 
   .mobile-backdrop {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(15, 23, 42, 0.5);
+    inset: 0;
+    background-color: rgba(7, 31, 26, 0.5);
     backdrop-filter: blur(2px);
     z-index: 35;
   }
 
   .app-content-canvas {
-    padding: 16px;
-  }
-
-  .app-topbar {
-    padding: 0 16px;
+    padding: 20px 16px;
   }
 
   .topbar-user-name {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .guest-header {
+    padding: 0 16px;
+  }
+  .app-topbar {
+    padding: 0 16px;
   }
 }

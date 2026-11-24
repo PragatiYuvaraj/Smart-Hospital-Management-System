@@ -24,6 +24,9 @@
 
 'use strict';
 
+const dns = require('node:dns');
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+
 const path = require('path');
 const readline = require('readline');
 const dotenv = require('dotenv');
@@ -100,13 +103,13 @@ const promptHiddenPassword = (promptText = 'Enter new password: ') => {
       process.stdin.on('data', onData);
     }
 
-    rl.question('', () => {
+    rl.question('', (answer) => {
       if (process.stdin.isTTY) {
         process.stdin.setRawMode(false);
       }
       rl.close();
       console.log(''); // newline after enter
-      resolve(password);
+      resolve(password || answer || '');
     });
   });
 };

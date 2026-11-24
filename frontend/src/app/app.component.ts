@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './core/auth/auth.service';
+import { DialogHostComponent } from './core/components/dialog-host.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DialogHostComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
