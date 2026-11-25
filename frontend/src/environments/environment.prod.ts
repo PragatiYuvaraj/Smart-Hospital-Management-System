@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: '/api'
+  apiUrl: 'https://smart-hospital-management-system-backend-git-main-innova-x1.vercel.app/api'
 };
