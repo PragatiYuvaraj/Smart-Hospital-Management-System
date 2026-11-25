@@ -45,6 +45,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serverless auto-connection for Vercel and serverless environments
+const { connectDB } = require('./config/db');
+const mongoose = require('mongoose');
+let dbConnectionPromise = null;
+
+app.use(async (req, res, next) => {
+  if (env.NODE_ENV !== 'test' && mongoose.connection.readyState === 0) {
+    if (!dbConnectionPromise) {
+      dbConnectionPromise = connectDB().finally(() => {
+        dbConnectionPromise = null;
+      });
+    }
+    await dbConnectionPromise;
+  }
+  next();
+});
+
 // Primary health check endpoint
 app.use('/api/health', healthRoutes);
 
