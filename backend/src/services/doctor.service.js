@@ -70,7 +70,7 @@ const readOptionalText = (payload, field) => {
 };
 
 const toSafeDoctor = (doctor) => {
-  const safe = doctor.toJSON();
+  const safe = typeof doctor?.toJSON === 'function' ? doctor.toJSON() : { ...doctor };
   delete safe.passwordHash;
   return safe;
 };
