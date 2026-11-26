@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://smart-hospital-management-system-ba.vercel.app/api'
+  apiUrl: 'https://smart-hospital-management-system-sdiw.onrender.com/api'
 };
